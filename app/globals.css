@@ -1777,7 +1777,7 @@ pre, code {
   }
   .composer-toolbar > button:not(.composer-primary-action),
   .composer-toolbar > div > button,
-  .composer-toolbar > span {
+  .composer-toolbar > span:not([data-effects]) {
     width: 24px !important;
   }
   .composer-primary-action {

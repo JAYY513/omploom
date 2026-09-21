@@ -11,7 +11,6 @@ const jiti = createJiti(import.meta.url, {
 const { StatusMark } = await jiti.import("./StatusMark.tsx");
 const { SpringCheck } = await jiti.import("./SpringCheck.tsx");
 const { ClickSpark } = await jiti.import("./ClickSpark.tsx");
-const { MagnetButton } = await jiti.import("./MagnetButton.tsx");
 const { FadeIn } = await jiti.import("./FadeIn.tsx");
 const { SplitText } = await jiti.import("./SplitText.tsx");
 const { BlurText } = await jiti.import("./BlurText.tsx");
@@ -86,17 +85,12 @@ test("SpringCheck renders an accent completed mark, decorative by default", () =
   assert.match(labeled, /aria-label="Completed"/);
 });
 
-test("ClickSpark and MagnetButton render static wrappers for SSR", () => {
+test("ClickSpark renders a static wrapper for SSR", () => {
   const spark = renderToStaticMarkup(
     React.createElement(ClickSpark, null, "send"),
   );
   assert.match(spark, /data-effects="click-spark"/);
   assert.match(spark, /<canvas/);
-  const magnet = renderToStaticMarkup(
-    React.createElement(MagnetButton, null, "mic"),
-  );
-  assert.match(magnet, /data-effects="magnet-button"/);
-  assert.match(magnet, /translate3d\(0px, 0px, 0\)/);
 });
 test("StaggerList staggers rows with per-item delays", () => {
   const html = renderToStaticMarkup(

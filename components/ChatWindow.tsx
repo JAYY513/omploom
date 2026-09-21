@@ -1225,7 +1225,7 @@ export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCa
                 <OmpRuntimeVersion />
               </div>
             </div>
-            <div style={{ padding: `0 ${CHAT_COLUMN_PADDING}px` }}>
+            <div style={{ padding: `0 ${CHAT_COLUMN_PADDING}px`, width: "100%", maxWidth: CHAT_COLUMN_MAX_WIDTH, boxSizing: "border-box" }}>
               <FadeIn distance={10} style={{ margin: "6px 8px 12px", textAlign: "center" }}>
                 <SplitText
                   text={t("chatWindow.emptyTitle")}
@@ -1248,10 +1248,10 @@ export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCa
                 />
               </FadeIn>
             </div>
-            <FadeIn distance={10} delay={120}>
-            <div style={{ padding: `0 ${CHAT_COLUMN_PADDING}px` }}>{newSessionWorkspace}</div>
+            <FadeIn distance={10} delay={120} style={{ width: "100%", maxWidth: CHAT_COLUMN_MAX_WIDTH, padding: `0 ${CHAT_COLUMN_PADDING}px`, boxSizing: "border-box" }}>
+            <div>{newSessionWorkspace}</div>
             </FadeIn>
-            <FadeIn distance={10} delay={200}>
+            <FadeIn distance={10} delay={200} style={{ width: "100%", maxWidth: CHAT_COLUMN_MAX_WIDTH, padding: `0 ${CHAT_COLUMN_PADDING}px`, boxSizing: "border-box" }}>
             <NoticeShelf notices={notices} onDismiss={dismissNotice} align="right" />
             {chatInputElement}
             </FadeIn>

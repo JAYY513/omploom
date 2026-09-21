@@ -13,7 +13,6 @@ import { formatCompactNumber, formatPercent } from "@/lib/format";
 import { ContextDetailPanel } from "./ComposerPanels";
 import { RecordingDeck } from "./RecordingDeck";
 import { ClickSpark } from "./effects/ClickSpark";
-import { MagnetButton } from "./effects/MagnetButton";
 import { clearDraft, getDraft, setDraft } from "@/lib/draft-store";
 import { expandWebSlashCommand } from "@/lib/web-slash-commands";
 import type { AttachedImage, AttachedTextFile } from "./ChatInput-draft-attachments";
@@ -2394,7 +2393,6 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, Props>(function ChatIn
           }}>
             {/* Plus menu — attachment · tools submenu · advisor submenu */}
             <div ref={plusMenuRef} style={{ position: "relative", flexShrink: 0 }}>
-              <MagnetButton>
               <button
                 onClick={() => setPlusMenuOpen((v) => !v)}
                 title={t("chatInput.plusMenu")}
@@ -2416,7 +2414,6 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, Props>(function ChatIn
               >
                 <Plus size={14} strokeWidth={2} aria-hidden="true" />
               </button>
-              </MagnetButton>
               {plusMenuOpen && (
                 <div
                   className="picker-panel"
@@ -2905,7 +2902,6 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, Props>(function ChatIn
                 <X size={14} strokeWidth={1.8} aria-hidden="true" />
               </button>
             ) : (
-              <MagnetButton>
               <button
                 type="button"
                 onClick={startFreshDictation}
@@ -2926,7 +2922,6 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, Props>(function ChatIn
               >
                 <Mic size={14} strokeWidth={1.8} aria-hidden="true" />
               </button>
-              </MagnetButton>
             )}
             {/* Primary action: Send (idle) / Queue (typed while running) / Stop (running) */}
             {primaryActionQueuesMessage ? (
