@@ -106,6 +106,8 @@ components/
   SessionSidebar.tsx  session tree + FileExplorer
   ChatWindow.tsx      chat composition + completion sound wrapper
   ChatInput.tsx       input bar + model/thinking/tools/compact controls
+  ChatInput-thinking-slider.tsx  PromptBar effort view (drag slider); traditional list behind "Show all…"
+  ChatInput-max-sparks.tsx  PromptBar max-effort field effect (glow wash + rising sparks canvas)
   ComposerPanels.tsx  composer-attached todo + subagent panels (collapsible, live states)
   TodoList.tsx        todo phase grid with preview/show-all (used by ComposerPanels)
   SubagentTranscriptDialog.tsx  task + final output summary dialog (wide, screen-adaptive)

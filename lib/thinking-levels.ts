@@ -29,6 +29,11 @@ export function selectableThinkingLevels(available: readonly string[] | null | u
   const ordered = DEFAULT_THINKING_LEVELS.filter((level) => level === "auto" || remaining.delete(level));
   return [...ordered, ...remaining];
 }
+/** Slider position for a level inside the ordered ladder; unknown falls back to the first stop. */
+export function thinkingLevelIndex(levels: readonly string[], level: string | undefined): number {
+  const index = levels.indexOf(level ?? "auto");
+  return index >= 0 ? index : 0;
+}
 
 /** "off" is always a valid selector; concrete efforts come from the model. */
 export function thinkingLevelsForMeta(meta: ThinkingModelMeta): string[] {
