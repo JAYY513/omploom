@@ -16,7 +16,7 @@ const {
   runCli,
   validateHostname,
   validatePort,
-} = require("./omp-web-systemd.js");
+} = require("./omp-loom-systemd.js");
 const {
   parseServiceEnv,
   serializeServiceEnv,
@@ -39,7 +39,7 @@ test("service env files round-trip quoted values", () => {
 });
 
 test("writeServiceEnv creates the parent directory and a private file", () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "ompweb-service-env-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "omploom-service-env-"));
   try {
     const envPath = path.join(dir, "nested", "web-service.env");
     writeServiceEnv({ PORT: "40100", OMP_WEB_HOSTNAME: "127.0.0.1" }, envPath);
@@ -55,13 +55,13 @@ test("writeServiceEnv creates the parent directory and a private file", () => {
 
 test("buildUnit points at the generated env file and keeps runtime settings out of the unit", () => {
   const unit = buildUnit({
-    ompwebBin: "/usr/local/bin/ompweb",
+    omploomBin: "/usr/local/bin/omploom",
     env: { OMP_WEB_OMP_BIN: "/home/u/.bun/bin/omp" },
     home: "/home/u",
     envPath: "/home/u/.omp/agent/web-service.env",
   });
 
-  assert.match(unit, /ExecStart=\/usr\/local\/bin\/ompweb\n/);
+  assert.match(unit, /ExecStart=\/usr\/local\/bin\/omploom\n/);
   assert.match(unit, /WorkingDirectory=%h/);
   assert.match(unit, /EnvironmentFile=\/home\/u\/\.omp\/agent\/web-service\.env/);
   assert.doesNotMatch(unit, /PORT=/);
@@ -80,14 +80,14 @@ test("unit helpers escape systemd values and paths", () => {
   assert.equal(escapeUnitValue('quo"te\\'), 'quo\\"te\\\\');
   assert.equal(escapeUnitPath("/home/user name/web-service.env"), "/home/user\\x20name/web-service.env");
   assert.equal(escapeUnitPath("/home/100%name/web-service.env"), "/home/100%%name/web-service.env");
-  assert.equal(formatExecStart("/usr/local/bin/ompweb"), "/usr/local/bin/ompweb");
-  assert.equal(formatExecStart("/home/user name/ompweb"), '"/home/user name/ompweb"');
+  assert.equal(formatExecStart("/usr/local/bin/omploom"), "/usr/local/bin/omploom");
+  assert.equal(formatExecStart("/home/user name/omploom"), '"/home/user name/omploom"');
 });
 
 test("resolveOmpwebBin honors an executable override", () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "ompweb-systemd-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "omploom-systemd-"));
   try {
-    const fake = path.join(dir, "ompweb");
+    const fake = path.join(dir, "omploom");
     writeFileSync(fake, "#!/bin/sh\n", { mode: 0o755 });
     assert.equal(resolveOmpwebBin({ OMP_WEB_SYSTEMD_BIN: fake }), fake);
   } finally {
@@ -105,11 +105,11 @@ test("port and hostname validation rejects unsafe values", () => {
 });
 
 test("install creates the env file and unit with LAN settings", { skip: process.platform !== "linux" }, () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "ompweb-systemd-install-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "omploom-systemd-install-"));
   try {
     const home = path.join(dir, "home");
     const binDir = path.join(dir, "bin");
-    const fakeOmpweb = path.join(binDir, "ompweb");
+    const fakeOmpweb = path.join(binDir, "omploom");
     const fakeSystemctl = path.join(binDir, "systemctl");
     mkdirSync(home, { recursive: true });
     mkdirSync(binDir, { recursive: true });
@@ -129,14 +129,14 @@ test("install creates the env file and unit with LAN settings", { skip: process.
     delete childEnv.PI_CODING_AGENT_DIR;
     delete childEnv.OMP_WEB_OMP_BIN;
 
-    const result = spawnSync(process.execPath, [path.join(process.cwd(), "bin", "omp-web-systemd.js"), "install", "--no-autostart"], {
+    const result = spawnSync(process.execPath, [path.join(process.cwd(), "bin", "omp-loom-systemd.js"), "install", "--no-autostart"], {
       env: childEnv,
       encoding: "utf8",
     });
     assert.equal(result.status, 0, result.stderr);
 
     const envPath = path.join(home, ".omp", "agent", "web-service.env");
-    const unitPath = path.join(home, ".config", "systemd", "user", "ompweb.service");
+    const unitPath = path.join(home, ".config", "systemd", "user", "omploom.service");
     assert.deepEqual(parseServiceEnv(readFileSync(envPath, "utf8")), {
       PORT: "40123",
       OMP_WEB_HOSTNAME: "0.0.0.0",
@@ -150,8 +150,8 @@ test("install creates the env file and unit with LAN settings", { skip: process.
   }
 });
 
-test("main ompweb bin forwards the systemd subcommand", () => {
-  const result = spawnSync(process.execPath, [path.join(process.cwd(), "bin", "omp-web.js"), "systemd", "--version"], {
+test("main omploom bin forwards the systemd subcommand", () => {
+  const result = spawnSync(process.execPath, [path.join(process.cwd(), "bin", "omp-loom.js"), "systemd", "--version"], {
     encoding: "utf8",
   });
   assert.equal(result.status, 0, result.stderr);

@@ -30,7 +30,7 @@ import {
   type WorktreeEntry,
   type WorktreeState,
 } from "./SessionSidebar-helpers";
-import { OmpWebTitle, SIDEBAR_BUTTON_TRANSITION, SidebarIconButton } from "./SessionSidebar-chrome";
+import { OmpLoomTitle, SIDEBAR_BUTTON_TRANSITION, SidebarIconButton } from "./SessionSidebar-chrome";
 import { ProjectRow, ProjectWorktreeSwitcher } from "./SessionSidebar-rows";
 
 /** Deadline for one /api/sessions fetch. A wedged-but-listening server never
@@ -65,7 +65,7 @@ interface Props {
   usageVisible?: boolean;
   /** Opens the app settings (pinned sidebar footer row). */
   onOpenSettings?: () => void;
-  /** True when an omp/ompweb update is available — shows a badge on the gear. */
+  /** True when an omp/omploom update is available — shows a badge on the gear. */
   updateAvailable?: boolean;
   /** Opens the archived sessions browser. */
   onOpenArchive?: () => void;
@@ -1069,7 +1069,7 @@ export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, 
     ? worktreeStateByProject[normalizeProjectKey(selectedProject)]
     : undefined;
 
-  /** Inline branch label ("omp-web · main") from a project's OWN cached Git
+  /** Inline branch label ("omp-loom · main") from a project's OWN cached Git
    *  state. Returns null when the project has no Git state or is not a git
    *  repo, so a non-Git / not-yet-loaded project never shows another repo's
    *  branch. */
@@ -1177,7 +1177,7 @@ export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, 
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <OmpWebTitle />
+          <OmpLoomTitle />
           <div style={{ display: "flex", gap: 2 }}>
             {onOpenArchive && (
               <Tooltip content={t("sessionSidebar.archiveBrowserTitle")} side="bottom">

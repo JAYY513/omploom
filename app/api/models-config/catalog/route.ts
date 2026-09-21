@@ -19,7 +19,7 @@ interface CatalogCache {
 }
 
 declare global {
-  var __ompWebModelsDevCatalogCache: CatalogCache | undefined;
+  var __ompLoomModelsDevCatalogCache: CatalogCache | undefined;
 }
 
 async function fetchCatalog(): Promise<ModelCatalogEntry[]> {
@@ -35,9 +35,9 @@ async function fetchCatalog(): Promise<ModelCatalogEntry[]> {
 }
 
 async function loadCatalog(): Promise<ModelCatalogEntry[]> {
-  let cache = globalThis.__ompWebModelsDevCatalogCache;
+  let cache = globalThis.__ompLoomModelsDevCatalogCache;
   if (!cache) {
-    cache = globalThis.__ompWebModelsDevCatalogCache = { entries: [], expiresAt: 0 };
+    cache = globalThis.__ompLoomModelsDevCatalogCache = { entries: [], expiresAt: 0 };
   }
   if (cache.entries.length > 0 && cache.expiresAt > Date.now()) return cache.entries;
   if (!cache.inFlight) {

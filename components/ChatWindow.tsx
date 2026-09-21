@@ -13,7 +13,7 @@ import { ExtensionDialog } from "./ExtensionDialog";
 import { SubagentTranscriptDialog } from "./SubagentTranscriptDialog";
 import { ChatMinimap, useMessageRefs } from "./ChatMinimap";
 import { ComposerPanels } from "./ComposerPanels";
-import OmpWebLogo from "./OmpWebLogo";
+import OmpLoomLogo from "./OmpLoomLogo";
 import { CHAT_COLUMN_MAX_WIDTH, MINIMAP_WIDTH } from "@/lib/chat-layout";
 import { useAgentSession, type AgentPhase, type NoticeItem, type SubagentInfo } from "@/hooks/useAgentSession";
 import { useAudio } from "@/hooks/useAudio";
@@ -1206,8 +1206,8 @@ export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCa
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, lineHeight: 1.4, overflow: "hidden" }}>
-                <OmpWebLogo size={26} />
-                <span className="omp-wordmark" style={{ fontSize: 18, color: "var(--text)", fontWeight: 600, letterSpacing: "0.02em", flexShrink: 0, whiteSpace: "nowrap", fontFamily: "var(--font-mono)" }}>omp web</span>
+                <OmpLoomLogo size={26} />
+                <span className="omp-wordmark" style={{ fontSize: 18, color: "var(--text)", fontWeight: 600, letterSpacing: "0.02em", flexShrink: 0, whiteSpace: "nowrap", fontFamily: "var(--font-mono)" }}>omp loom</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
                 <span style={{ fontSize: 11, color: "var(--text-muted)" }}>

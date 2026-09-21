@@ -62,7 +62,7 @@ export function resolveSelfUpdateTempRoot(
 ): string {
   const pathApi = platform === "win32" ? win32 : posix;
   const suffix = platform === "win32" ? "" : `-${uid ?? "user"}`;
-  const base = kind === "omp" ? "omp-self-update" : "ompweb-self-update";
+  const base = kind === "omp" ? "omp-self-update" : "omploom-self-update";
   return pathApi.join(temporary, `${base}${suffix}`);
 }
 
@@ -334,11 +334,11 @@ export async function prepareSelfUpdate(kind: Kind = "app"): Promise<PrepareResu
   const attemptDir = join(attempts, attemptId);
   mkdirSync(attemptDir, { mode: 0o700, recursive: true });
   secureDirectory(attemptDir);
-  const srcWorker = resolve(join(dirname(new URL(import.meta.url).pathname), "..", "bin", "omp-web-update-worker.js"));
+  const srcWorker = resolve(join(dirname(new URL(import.meta.url).pathname), "..", "bin", "omp-loom-update-worker.js"));
   // fallback to CWD relative
   let workerSrc = srcWorker;
   if (!existsSync(workerSrc)) {
-    workerSrc = resolve(join(process.cwd(), "bin", "omp-web-update-worker.js"));
+    workerSrc = resolve(join(process.cwd(), "bin", "omp-loom-update-worker.js"));
   }
   const destWorker = join(attemptDir, "worker.js");
   if (existsSync(workerSrc)) {
@@ -395,7 +395,7 @@ export function commitSelfUpdate(attemptId: string, kind: Kind = "app"): { accep
   const fromVersion = status.fromVersion;
   const targetVersion = status.targetVersion;
   const descriptor = {
-    launcherPath: join(resolve(packageDir), "bin", "omp-web.js"),
+    launcherPath: join(resolve(packageDir), "bin", "omp-loom.js"),
     hostname: process.env.OMP_WEB_HOSTNAME ?? process.env.HOSTNAME ?? "127.0.0.1",
     port: Number(process.env.OMP_WEB_PORT ?? process.env.PORT ?? 30178),
   };

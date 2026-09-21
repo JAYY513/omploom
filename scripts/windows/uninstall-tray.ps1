@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Uninstalls the Windows Background Service and System Tray shortcuts for omp-web.
+    Uninstalls the Windows Background Service and System Tray shortcuts for omp-loom.
 .PARAMETER CleanConfig
     Also removes the web-service.json configuration file.
 .PARAMETER Quiet
@@ -21,7 +21,7 @@ function Log-Message([string]$msg) {
     }
 }
 
-Log-Message "Uninstalling omp-web Windows System Tray & Background Service..."
+Log-Message "Uninstalling omp-loom Windows System Tray & Background Service..."
 
 # -----------------------------------------------------------------------------
 # 1. Terminate Running Background Service & Tray Instances
@@ -29,23 +29,23 @@ Log-Message "Uninstalling omp-web Windows System Tray & Background Service..."
 try {
     $taskkillExe = Join-Path $env:SystemRoot "System32\taskkill.exe"
     if (!(Test-Path $taskkillExe)) { $taskkillExe = "taskkill.exe" }
-    # Find any running powershell instance executing omp-web-tray.ps1
-    $trayProcs = Get-CimInstance Win32_Process -Filter "Name LIKE '%powershell%' OR Name LIKE '%pwsh%'" -ErrorAction SilentlyContinue | Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -like '*omp-web-tray.ps1*' }
+    # Find any running powershell instance executing omp-loom-tray.ps1
+    $trayProcs = Get-CimInstance Win32_Process -Filter "Name LIKE '%powershell%' OR Name LIKE '%pwsh%'" -ErrorAction SilentlyContinue | Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -like '*omp-loom-tray.ps1*' }
     foreach ($p in $trayProcs) {
         Log-Message "  Stopping background tray process tree (PID $($p.ProcessId))..."
         Start-Process -FilePath $taskkillExe -ArgumentList "/PID $($p.ProcessId) /T /F" -WindowStyle Hidden -Wait -ErrorAction SilentlyContinue | Out-Null
     }
 } catch { }
 try {
-    # Also terminate headless service (omp-web-service.ps1) instances
-    $serviceProcs = Get-CimInstance Win32_Process -Filter "Name LIKE '%powershell%' OR Name LIKE '%pwsh%'" -ErrorAction SilentlyContinue | Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -like '*omp-web-service.ps1*' }
+    # Also terminate headless service (omp-loom-service.ps1) instances
+    $serviceProcs = Get-CimInstance Win32_Process -Filter "Name LIKE '%powershell%' OR Name LIKE '%pwsh%'" -ErrorAction SilentlyContinue | Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -like '*omp-loom-service.ps1*' }
     foreach ($p in $serviceProcs) {
         Log-Message "  Stopping headless service process tree (PID $($p.ProcessId))..."
         Start-Process -FilePath $taskkillExe -ArgumentList "/PID $($p.ProcessId) /T /F" -WindowStyle Hidden -Wait -ErrorAction SilentlyContinue | Out-Null
     }
     # Delete Scheduled Task (both schtasks and PowerShell fallback)
-    try { schtasks /delete /tn "omp-web" /f 2>$null | Out-Null; Log-Message "  [OK] Removed Scheduled Task: omp-web" } catch { }
-    try { Unregister-ScheduledTask -TaskName "omp-web" -Confirm:$false -ErrorAction SilentlyContinue | Out-Null } catch { }
+    try { schtasks /delete /tn "omp-loom" /f 2>$null | Out-Null; Log-Message "  [OK] Removed Scheduled Task: omp-loom" } catch { }
+    try { Unregister-ScheduledTask -TaskName "omp-loom" -Confirm:$false -ErrorAction SilentlyContinue | Out-Null } catch { }
 } catch { }
 
 # -----------------------------------------------------------------------------
@@ -60,21 +60,21 @@ $desktopDirs.Add((Join-Path $env:USERPROFILE "OneDrive\Desktop"))
 $uniqueDesktopDirs = $desktopDirs | Where-Object { !([string]::IsNullOrEmpty($_)) } | Select-Object -Unique
 
 foreach ($dir in $uniqueDesktopDirs) {
-    $desktopLnk = Join-Path $dir "omp-web.lnk"
+    $desktopLnk = Join-Path $dir "omp-loom.lnk"
     if (Test-Path $desktopLnk) {
         Remove-Item -Path $desktopLnk -Force -ErrorAction SilentlyContinue
         Log-Message "  [OK] Removed Desktop shortcut: $desktopLnk"
     }
 }
 $programsDir = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Programs)
-$startMenuLnk = Join-Path $programsDir "omp-web.lnk"
+$startMenuLnk = Join-Path $programsDir "omp-loom.lnk"
 if (Test-Path $startMenuLnk) {
     Remove-Item -Path $startMenuLnk -Force -ErrorAction SilentlyContinue
     Log-Message "  [OK] Removed Start Menu shortcut: $startMenuLnk"
 }
 
 $startupDir = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Startup)
-$startupLnk = Join-Path $startupDir "omp-web-tray.lnk"
+$startupLnk = Join-Path $startupDir "omp-loom-tray.lnk"
 if (Test-Path $startupLnk) {
     Remove-Item -Path $startupLnk -Force -ErrorAction SilentlyContinue
     Log-Message "  [OK] Removed Startup shortcut: $startupLnk"

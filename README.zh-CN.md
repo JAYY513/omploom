@@ -1,26 +1,26 @@
-# ompweb
+# omploom
 
-[![npm version](https://img.shields.io/npm/v/@kahme247/ompweb.svg?logo=npm&color=e05d44)](https://www.npmjs.com/package/@kahme247/ompweb)
-[![node version](https://img.shields.io/node/v/@kahme247/ompweb.svg?logo=node.js&color=44cc11)](https://nodejs.org)
-[![license](https://img.shields.io/github/license/kahme247/ompweb.svg?color=44cc11)](./LICENSE)
-[![npm downloads](https://img.shields.io/npm/dm/@kahme247/ompweb.svg?color=44cc11)](https://www.npmjs.com/package/@kahme247/ompweb)
-[![GitHub stars](https://img.shields.io/github/stars/kahme247/ompweb.svg?logo=github)](https://github.com/kahme247/ompweb/stargazers)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/kahme247/ompweb/pulls)
+[![npm version](https://img.shields.io/npm/v/omploom.svg?logo=npm&color=e05d44)](https://www.npmjs.com/package/omploom)
+[![node version](https://img.shields.io/node/v/omploom.svg?logo=node.js&color=44cc11)](https://nodejs.org)
+[![license](https://img.shields.io/github/license/JAYY513/omploom.svg?color=44cc11)](./LICENSE)
+[![npm downloads](https://img.shields.io/npm/dm/omploom.svg?color=44cc11)](https://www.npmjs.com/package/omploom)
+[![GitHub stars](https://img.shields.io/github/stars/JAYY513/omploom.svg?logo=github)](https://github.com/JAYY513/omploom/stargazers)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/JAYY513/omploom/pulls)
 
 [English](./README.md) | [简体中文](./README.zh-CN.md) | [日本語](./README.ja.md)
+> **omploom** is a fork of [ompweb](https://github.com/kahme247/ompweb) (MIT): a web workbench for the [oh-my-pi (omp)](https://github.com/can1357/oh-my-pi) coding agent.
 
-社区：[加入 OMPWEB Discord](https://discord.gg/evqgGzRfM5)
 
 [oh-my-pi (omp)](https://github.com/can1357/oh-my-pi) 编程智能体的现代 Web UI。它读取本地的 omp 会话，在浏览器中提供实时对话、项目会话浏览、配置管理和文件预览等功能。
 
-![ompweb — 演示](docs/demo.gif)
+![omploom — 演示](docs/demo.gif)
 
 <details>
 <summary>截图（浅色 / 深色主题）</summary>
 
-![ompweb — 浅色主题](docs/screenshot-light.png)
+![omploom — 浅色主题](docs/screenshot-light.png)
 
-![ompweb — 深色主题](docs/screenshot-dark.png)
+![omploom — 深色主题](docs/screenshot-dark.png)
 
 </details>
 
@@ -34,14 +34,14 @@
 **免安装直接运行：**
 
 ```bash
-npx @kahme247/ompweb@latest
+npx omploom@latest
 ```
 
 **或全局安装：**
 
 ```bash
-npm install -g @kahme247/ompweb
-ompweb
+npm install -g omploom
+omploom
 ```
 
 在浏览器中打开 [http://127.0.0.1:30177](http://127.0.0.1:30177)。
@@ -49,10 +49,10 @@ ompweb
 ### CLI 选项
 
 ```bash
-ompweb --port 8080                         # 自定义端口
-ompweb --hostname 0.0.0.0                  # 监听网络地址
-ompweb --password "your-password"          # 启用密码保护
-ompweb --no-open                           # 不自动打开浏览器
+omploom --port 8080                         # 自定义端口
+omploom --hostname 0.0.0.0                  # 监听网络地址
+omploom --password "your-password"          # 启用密码保护
+omploom --no-open                           # 不自动打开浏览器
 ```
 
 ## 功能特性
@@ -85,8 +85,8 @@ ompweb --no-open                           # 不自动打开浏览器
 ## 本地开发
 
 ```bash
-git clone https://github.com/kahme247/ompweb.git
-cd ompweb
+git clone https://github.com/JAYY513/omploom.git
+cd omploom
 npm install
 npm run dev
 ```

@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Installs the Windows Background Service, System Tray shortcuts, and autostart registration for omp-web.
+    Installs the Windows Background Service, System Tray shortcuts, and autostart registration for omp-loom.
 .PARAMETER Port
     Default port to configure (default 30177).
 .PARAMETER Hostname
@@ -26,7 +26,7 @@ param(
 )
 
 $RepoRoot = (Resolve-Path "$PSScriptRoot\..\..").Path
-$IcoPath = Join-Path $RepoRoot "public\omp-web.ico"
+$IcoPath = Join-Path $RepoRoot "public\omp-loom.ico"
 $PngPath = Join-Path $RepoRoot "public\icon.png"
 $LaunchVbs = Join-Path $RepoRoot "scripts\windows\launch-tray.vbs"
 
@@ -117,7 +117,7 @@ function Ensure-IconFile {
     }
 }
 
-Log-Message "Installing omp-web Windows System Tray & Background Service..."
+Log-Message "Installing omp-loom Windows System Tray & Background Service..."
 Ensure-IconFile
 
 # -----------------------------------------------------------------------------
@@ -158,11 +158,11 @@ $wscriptExe = Join-Path $env:SystemRoot "System32\wscript.exe"
 if (!(Test-Path $wscriptExe)) {
     $wscriptExe = "wscript.exe"
 }
-$nativeExe = Join-Path $RepoRoot "bin\omp-web-tray.exe"
+$nativeExe = Join-Path $RepoRoot "bin\omp-loom-tray.exe"
 $useNative = Test-Path $nativeExe
 # Desktop Shortcut
 $desktopDir = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
-$desktopLnk = Join-Path $desktopDir "omp-web.lnk"
+$desktopLnk = Join-Path $desktopDir "omp-loom.lnk"
 try {
     $sc = $wsh.CreateShortcut($desktopLnk)
     if ($useNative) {
@@ -174,7 +174,7 @@ try {
     }
     $sc.WorkingDirectory = $RepoRoot
     if (Test-Path $IcoPath) { $sc.IconLocation = "$IcoPath,0" }
-    $sc.Description = "Open omp-web AI Coding Agent Web Interface"
+    $sc.Description = "Open omp-loom AI Coding Agent Web Interface"
     $sc.Save()
     Log-Message "  [OK] Desktop shortcut created: $desktopLnk $(if ($useNative) { '(native tray)' } else { '' })"
 } catch {
@@ -183,7 +183,7 @@ try {
 
 # Start Menu Shortcut
 $programsDir = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Programs)
-$startMenuLnk = Join-Path $programsDir "omp-web.lnk"
+$startMenuLnk = Join-Path $programsDir "omp-loom.lnk"
 try {
     $sc = $wsh.CreateShortcut($startMenuLnk)
     if ($useNative) {
@@ -195,7 +195,7 @@ try {
     }
     $sc.WorkingDirectory = $RepoRoot
     if (Test-Path $IcoPath) { $sc.IconLocation = "$IcoPath,0" }
-    $sc.Description = "omp-web System Tray & Web Interface"
+    $sc.Description = "omp-loom System Tray & Web Interface"
     $sc.Save()
     Log-Message "  [OK] Start Menu shortcut created: $startMenuLnk $(if ($useNative) { '(native tray)' } else { '' })"
 } catch {
@@ -204,7 +204,7 @@ try {
 
 # Startup Shortcut (if autostart enabled)
 $startupDir = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Startup)
-$startupLnk = Join-Path $startupDir "omp-web-tray.lnk"
+$startupLnk = Join-Path $startupDir "omp-loom-tray.lnk"
 if (!$NoAutostart) {
     try {
         $sc = $wsh.CreateShortcut($startupLnk)
@@ -217,7 +217,7 @@ if (!$NoAutostart) {
         }
         $sc.WorkingDirectory = $RepoRoot
         if (Test-Path $IcoPath) { $sc.IconLocation = "$IcoPath,0" }
-        $sc.Description = "omp-web Background Tray Service"
+        $sc.Description = "omp-loom Background Tray Service"
         $sc.Save()
         Log-Message "  [OK] Windows Startup shortcut created: $startupLnk $(if ($useNative) { '(native tray)' } else { '' })"
     } catch {
@@ -236,10 +236,10 @@ Log-Message "Tray Launcher   : $LaunchVbs"
 # -----------------------------------------------------------------------------
 # 3b. Register Scheduled Task for headless service (robust, no desktop heap)
 # -----------------------------------------------------------------------------
-$ServicePs1 = Join-Path $RepoRoot "scripts\windows\omp-web-service.ps1"
+$ServicePs1 = Join-Path $RepoRoot "scripts\windows\omp-loom-service.ps1"
 if (!$NoAutostart -and (Test-Path $ServicePs1)) {
     try {
-        $taskName = "omp-web"
+        $taskName = "omp-loom"
         $actionArg = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$ServicePs1`""
         # Use schtasks for compatibility (no admin required for current user ONLOGON)
         $createArgs = "/create /tn `"$taskName`" /tr `"powershell $actionArg`" /sc onlogon /f"
@@ -264,7 +264,7 @@ if (!$NoAutostart -and (Test-Path $ServicePs1)) {
         Log-Message "  [WARN] Scheduled Task creation failed: $($_.Exception.Message)"
     }
 } elseif ($NoAutostart) {
-    try { schtasks /delete /tn "omp-web" /f 2>$null | Out-Null } catch { }
+    try { schtasks /delete /tn "omp-loom" /f 2>$null | Out-Null } catch { }
 }
 
 # -----------------------------------------------------------------------------

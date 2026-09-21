@@ -70,7 +70,7 @@ function isSafeReleaseUrl(value: string, version: string): boolean {
       && url.password === ""
       && url.search === ""
       && url.hash === ""
-      && url.pathname === `/kahme247/ompweb/releases/tag/v${version}`;
+      && url.pathname === `/JAYY513/omploom/releases/tag/v${version}`;
   } catch {
     return false;
   }
@@ -200,7 +200,7 @@ export function AppUpdateDialog({ open, update, phase, visibleStage, error, onPr
     return () => controller.abort();
   }, [availableVersion, releaseNotes?.version, shouldLoadReleaseNotes]);
   const busy = phase === "preparing" || phase === "restarting" || phase === "completed";
-  const command = update?.updateCommand || "npm install -g @kahme247/ompweb";
+  const command = update?.updateCommand || "npm install -g omploom";
   const completedVersion = update?.selfUpdateStatus?.targetVersion ?? update?.availableVersion ?? update?.currentVersion ?? "?";
   const versionTransition = getAppUpdateVersionTransition(update, phase);
   const effectiveStage = visibleStage ?? update?.selfUpdateStatus?.stage;

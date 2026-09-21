@@ -1,25 +1,25 @@
 {
-  "name": "@kahme247/ompweb",
+  "name": "omploom",
   "version": "0.5.0",
   "description": "Web UI for the oh-my-pi (omp) coding agent",
-  "homepage": "https://github.com/kahme247/ompweb#readme",
+  "homepage": "https://github.com/JAYY513/omploom#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kahme247/ompweb.git"
+    "url": "git+https://github.com/JAYY513/omploom.git"
   },
   "bugs": {
-    "url": "https://github.com/kahme247/ompweb/issues"
+    "url": "https://github.com/JAYY513/omploom/issues"
   },
   "license": "MIT",
   "engines": {
     "node": ">=22.19.0"
   },
   "bin": {
-    "ompweb": "bin/omp-web.js",
-    "ompweb-tray": "bin/omp-web-tray.js",
-    "ompweb-tray-linux": "bin/linux-tray.js",
-    "ompweb-launchd": "bin/omp-web-launchd.js",
-    "ompweb-systemd": "bin/omp-web-systemd.js"
+    "omploom": "bin/omp-loom.js",
+    "omploom-tray": "bin/omp-loom-tray.js",
+    "omploom-tray-linux": "bin/linux-tray.js",
+    "omploom-launchd": "bin/omp-loom-launchd.js",
+    "omploom-systemd": "bin/omp-loom-systemd.js"
   },
   "files": [
     "bin",
@@ -46,15 +46,15 @@
     "test": "node --experimental-strip-types --test lib/*.test.mjs lib/omp/*.test.mjs components/*.test.mjs components/ui/*.test.mjs hooks/*.test.mjs bin/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "tray:install": "node bin/omp-web-tray.js --install",
-    "tray:uninstall": "node bin/omp-web-tray.js --uninstall",
-    "tray:start": "node bin/omp-web-tray.js --start",
-    "tray:status": "node bin/omp-web-tray.js --status",
-    "systemd:install": "node bin/omp-web-systemd.js install",
-    "systemd:uninstall": "node bin/omp-web-systemd.js uninstall",
-    "systemd:start": "node bin/omp-web-systemd.js start",
-    "systemd:stop": "node bin/omp-web-systemd.js stop",
-    "systemd:status": "node bin/omp-web-systemd.js status",
+    "tray:install": "node bin/omp-loom-tray.js --install",
+    "tray:uninstall": "node bin/omp-loom-tray.js --uninstall",
+    "tray:start": "node bin/omp-loom-tray.js --start",
+    "tray:status": "node bin/omp-loom-tray.js --status",
+    "systemd:install": "node bin/omp-loom-systemd.js install",
+    "systemd:uninstall": "node bin/omp-loom-systemd.js uninstall",
+    "systemd:start": "node bin/omp-loom-systemd.js start",
+    "systemd:stop": "node bin/omp-loom-systemd.js stop",
+    "systemd:status": "node bin/omp-loom-systemd.js status",
     "prepack": "npm run build",
     "release:check": "npm run typecheck && npm run lint && npm test && npm run build"
   },

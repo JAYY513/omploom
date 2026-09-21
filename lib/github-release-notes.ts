@@ -1,4 +1,4 @@
-const RELEASES_API_URL = "https://api.github.com/repos/kahme247/ompweb/releases/tags/";
+const RELEASES_API_URL = "https://api.github.com/repos/JAYY513/omploom/releases/tags/";
 const FETCH_TIMEOUT_MS = 5_000;
 export const MAX_BODY_BYTES = 64 * 1024;
 
@@ -23,7 +23,7 @@ export async function getGitHubReleaseNotes(version: string): Promise<GitHubRele
   try {
     response = await fetch(`${RELEASES_API_URL}${encodeURIComponent(tag)}`, {
       cache: "no-store",
-      headers: { Accept: "application/vnd.github+json", "User-Agent": "@kahme247/ompweb", "X-GitHub-Api-Version": "2022-11-28" },
+      headers: { Accept: "application/vnd.github+json", "User-Agent": "omploom", "X-GitHub-Api-Version": "2022-11-28" },
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
   } catch {

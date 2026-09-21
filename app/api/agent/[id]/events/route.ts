@@ -14,7 +14,7 @@ export async function GET(
   // POST /api/agent/[id], which starts the wrapper before this route attaches.
   const existing = getRpcSession(id);
   const session = existing?.isAlive() ? existing : undefined;
-  if (!session) return new Response("Session is not managed by omp-web", { status: 409 });
+  if (!session) return new Response("Session is not managed by omp-loom", { status: 409 });
 
   const encoder = new TextEncoder();
   // Hoisted so the stream's cancel() (half-open disconnects that never fire

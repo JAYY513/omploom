@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// Install ompweb as a macOS launchd user agent (starts at login, restarts on crash).
+// Install omploom as a macOS launchd user agent (starts at login, restarts on crash).
 //
-// Usage (installed as the `ompweb-launchd` bin, or run via npx / node directly):
-//   ompweb-launchd [install [package-spec]|uninstall|status]
-//   npx -p @kahme247/ompweb@latest ompweb-launchd install
+// Usage (installed as the `omploom-launchd` bin, or run via npx / node directly):
+//   omploom-launchd [install [package-spec]|uninstall|status]
+//   npx -p omploom@latest omploom-launchd install
 //
 // The positional package-spec picks what the service runs via `npx --yes`
-// (default @kahme247/ompweb@latest; env OMP_WEB_PKG is an equivalent override).
+// (default omploom@latest; env OMP_WEB_PKG is an equivalent override).
 //
 // Configuration (read at install time, baked into the plist):
-//   OMP_WEB_PKG          npm package spec run via npx               default @kahme247/ompweb@latest
+//   OMP_WEB_PKG          npm package spec run via npx               default omploom@latest
 //   PORT                 Server port                                default 30177
 //   OMP_WEB_HOSTNAME     Server bind host                           default 127.0.0.1
 //   OMP_WEB_PASSWORD     Optional password for web login            default none (auth disabled)
@@ -18,17 +18,17 @@
 //   PI_CODING_AGENT_DIR  Custom omp agent directory                 default ~/.omp/agent
 //
 // Example (loopback-only; require auth + trusted HTTPS proxy/VPN for remote access):
-//   OMP_WEB_PASSWORD=secret ompweb-launchd install
+//   OMP_WEB_PASSWORD=secret omploom-launchd install
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const LABEL = "com.kahme247.ompweb";
+const LABEL = "com.jayy513.omploom";
 const HOME = os.homedir();
 const PLIST = path.join(HOME, "Library", "LaunchAgents", `${LABEL}.plist`);
-const LOG_DIR = path.join(HOME, "Library", "Logs", "ompweb");
+const LOG_DIR = path.join(HOME, "Library", "Logs", "omploom");
 const DOMAIN = `gui/${process.getuid?.() ?? 0}`;
 
 // Print an error and exit non-zero.
@@ -93,7 +93,7 @@ function install(pkgArg?: string): void {
   }
 
   // Service parameters with defaults; the positional package spec wins over env.
-  const pkg = pkgArg ?? process.env.OMP_WEB_PKG ?? "@kahme247/ompweb@latest";
+  const pkg = pkgArg ?? process.env.OMP_WEB_PKG ?? "omploom@latest";
   const port = process.env.PORT ?? "30177";
   const hostname = process.env.OMP_WEB_HOSTNAME ?? "127.0.0.1";
   const noOpen = process.env.OMP_WEB_NO_OPEN ?? "1";
@@ -148,8 +148,8 @@ ${envXml}
   <key>WorkingDirectory</key><string>${xmlEscape(HOME)}</string>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>${xmlEscape(path.join(LOG_DIR, "ompweb.log"))}</string>
-  <key>StandardErrorPath</key><string>${xmlEscape(path.join(LOG_DIR, "ompweb.err.log"))}</string>
+  <key>StandardOutPath</key><string>${xmlEscape(path.join(LOG_DIR, "omploom.log"))}</string>
+  <key>StandardErrorPath</key><string>${xmlEscape(path.join(LOG_DIR, "omploom.err.log"))}</string>
 </dict>
 </plist>
 `;
@@ -167,7 +167,7 @@ ${envXml}
   console.log(`installed: ${PLIST}`);
   console.log(`package:   ${pkg} (via npx --yes)`);
   console.log(`url:       http://${hostname}:${port}`);
-  console.log(`logs:      ${path.join(LOG_DIR, "ompweb.log")}`);
+  console.log(`logs:      ${path.join(LOG_DIR, "omploom.log")}`);
   if (password) console.log("note:      password is stored in plain text in the plist (mode 600)");
 }
 
@@ -195,6 +195,6 @@ if (command === "install") install(process.argv[3]);
 else if (command === "uninstall") uninstall();
 else if (command === "status") status();
 else {
-  console.error("usage: ompweb-launchd [install [package-spec]|uninstall|status]");
+  console.error("usage: omploom-launchd [install [package-spec]|uninstall|status]");
   process.exit(2);
 }

@@ -1,8 +1,8 @@
 import { useId } from "react";
 
-// omp-web brand mark: the omp π glyph on its midnight tile.
+// omp-loom brand mark: the omp π glyph on its midnight tile.
 // Artwork matches the omp.sh favicon (https://omp.sh/favicon.svg).
-export default function OmpWebLogo({
+export default function OmpLoomLogo({
   size = 20,
   label = "omp logo",
 }: {

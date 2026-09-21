@@ -77,7 +77,7 @@ function parseGitLog(rawLog) {
   return commits;
 }
 
-function cleanSubject(subject, repo = "kahme247/ompweb") {
+function cleanSubject(subject, repo = "JAYY513/omploom") {
   let cleaned = subject.trim();
 
   cleaned = cleaned.replace(/^(?:feat|fix|perf|refactor|style|security|docs|chore|test|ci|build)(?:\([^)]+\))?!?:?\s*/i, "");
@@ -144,7 +144,7 @@ function formatReleaseNotes({
   changelogBody,
   commits = [],
   previousTag,
-  repo = "kahme247/ompweb",
+  repo = "JAYY513/omploom",
 }) {
   const lines = [];
 
@@ -157,7 +157,7 @@ function formatReleaseNotes({
 
     for (const c of commits) {
       const s = c.subject.trim();
-      if (/^(?:chore: )?release( ompweb)? v?[0-9]/i.test(s) || /^v?[0-9]+\.[0-9]+\.[0-9]+$/i.test(s)) {
+      if (/^(?:chore: )?release( omploom)? v?[0-9]/i.test(s) || /^v?[0-9]+\.[0-9]+\.[0-9]+$/i.test(s)) {
         continue;
       }
 
@@ -209,7 +209,7 @@ function formatReleaseNotes({
   if (!lines.join("\n").includes("## Upgrade")) {
     lines.push("\n## Upgrade\n");
     lines.push("```bash");
-    lines.push(`npm install -g @kahme247/ompweb@${version}`);
+    lines.push(`npm install -g omploom@${version}`);
     lines.push("```");
   }
 
@@ -225,7 +225,7 @@ function formatReleaseNotes({
 
 function generateReleaseNotes({
   tag,
-  repo = process.env.GITHUB_REPOSITORY || "kahme247/ompweb",
+  repo = process.env.GITHUB_REPOSITORY || "JAYY513/omploom",
   changelogPath = "CHANGELOG.md",
   cwd = process.cwd(),
 } = {}) {
@@ -291,7 +291,7 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   let tag = process.env.TAG || process.env.GITHUB_REF_NAME;
   let outputPath = null;
-  let repo = process.env.GITHUB_REPOSITORY || "kahme247/ompweb";
+  let repo = process.env.GITHUB_REPOSITORY || "JAYY513/omploom";
   let changelogPath = "CHANGELOG.md";
 
   for (let i = 0; i < args.length; i++) {

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProp
 import { createPortal } from "react-dom";
 import { useI18n } from "@/lib/i18n";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import OmpWebLogo from "./OmpWebLogo";
+import OmpLoomLogo from "./OmpLoomLogo";
 /**
  * Path label that ellipsizes on the LEFT, keeping the (most relevant) trailing
  * segments visible: "…orkspace/pi-web". Shows as much of the path as fits
@@ -280,14 +280,14 @@ function useScramble(target: string, running: boolean, reducedMotion: boolean): 
 
   return display;
 }
-function OmpWebTitle() {
+function OmpLoomTitle() {
   const [showVersion, setShowVersion] = useState(false);
   const [scrambling, setScrambling] = useState(false);
   const revertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrambleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reducedMotion = usePrefersReducedMotion();
 
-  const target = showVersion ? `v${process.env.NEXT_PUBLIC_OMP_WEB_VERSION ?? "0.0.0"}` : "omp web";
+  const target = showVersion ? `v${process.env.NEXT_PUBLIC_OMP_WEB_VERSION ?? "0.0.0"}` : "omp loom";
   const display = useScramble(target, scrambling, reducedMotion);
 
   const triggerScramble = useCallback((toVersion: boolean) => {
@@ -327,13 +327,13 @@ function OmpWebTitle() {
         alignItems: "center",
         gap: 7,
       }}
-      title={showVersion ? "Show ompweb name" : "Show ompweb version"}
+      title={showVersion ? "Show omploom name" : "Show omploom version"}
     >
-      <OmpWebLogo size={20} />
+      <OmpLoomLogo size={20} />
       {!scrambling && !showVersion ? (
         <span>
           <span style={{ color: "var(--accent)" }}>omp</span>
-          <span style={{ color: "var(--text)" }}>web</span>
+          <span style={{ color: "var(--text)" }}>loom</span>
         </span>
       ) : (
         <span style={{ color: showVersion ? "var(--accent)" : "var(--text)" }}>{display}</span>
@@ -397,7 +397,7 @@ function UnreadSessionIndicator({ size = 14 }: { size?: number }) {
   );
 }
 export {
-  OmpWebTitle,
+  OmpLoomTitle,
   PathLabel,
   RunningSessionIndicator,
   SIDEBAR_BUTTON_TRANSITION,

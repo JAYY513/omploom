@@ -16,8 +16,8 @@ import { TodoList } from "./TodoList";
 import { SubagentStatusIcon } from "./SubagentStatusIcon";
 
 // Panels unmount when their inputs are empty and remount when they fill
-const TODO_COLLAPSED_STORAGE_KEY = "omp-web:composer-todo-collapsed";
-const SUBAGENTS_COLLAPSED_STORAGE_KEY = "omp-web:composer-subagents-collapsed";
+const TODO_COLLAPSED_STORAGE_KEY = "omp-loom:composer-todo-collapsed";
+const SUBAGENTS_COLLAPSED_STORAGE_KEY = "omp-loom:composer-subagents-collapsed";
 
 function loadCollapsed(key: string, defaultExpanded: boolean): boolean {
   if (typeof window === "undefined") return !defaultExpanded;

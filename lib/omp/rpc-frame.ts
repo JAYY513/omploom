@@ -14,7 +14,7 @@ import { isRecord } from "../type-guards";
 export const MAX_RPC_FRAME_BYTES = 1024 * 1024;
 export const MAX_RPC_REASSEMBLED_BYTES = 64 * 1024 * 1024;
 /**
- * Largest command omp-web writes to OMP's stdin as one JSONL object. Command
+ * Largest command omp-loom writes to OMP's stdin as one JSONL object. Command
  * bodies are already capped at 8 MiB by the agent routes
  * (`MAX_AGENT_COMMAND_REQUEST_BYTES`); this bound only turns a pathological
  * command into a clear error instead of an unbounded pipe write.

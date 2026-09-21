@@ -16,7 +16,7 @@ export async function register(): Promise<void> {
   try {
     const { getAgentDir } = await import("@/lib/session-reader");
     console.log(
-      `[omp-web] starting (agent-dir ${getAgentDir()})`,
+      `[omp-loom] starting (agent-dir ${getAgentDir()})`,
     );
   } catch {
     // Diagnostics are best-effort.
@@ -34,7 +34,7 @@ export async function register(): Promise<void> {
       await runUtilityCommand({ type: "get_state" });
       const { getOmpVersion } = await import("@/lib/omp/omp-cli");
       const version = await getOmpVersion();
-      console.log(`[omp-web] omp utility ready (${version ?? "version unknown"})`);
+      console.log(`[omp-loom] omp utility ready (${version ?? "version unknown"})`);
     } catch (error) {
       const { resolveOmpBin } = await import("@/lib/omp/omp-cli");
       const bin = resolveOmpBin();
@@ -42,7 +42,7 @@ export async function register(): Promise<void> {
       const hint = bin
         ? `resolved ${bin}; repair with: omp update (or: bun install -g @oh-my-pi/pi-coding-agent@latest)`
         : "omp binary not found; install oh-my-pi or set OMP_WEB_OMP_BIN";
-      console.warn(`[omp-web] omp utility warm-up failed (routes will retry on demand): ${detail} — ${hint}`);
+      console.warn(`[omp-loom] omp utility warm-up failed (routes will retry on demand): ${detail} — ${hint}`);
     }
   })();
 
@@ -52,7 +52,7 @@ export async function register(): Promise<void> {
   // process is restarted). Append fatal errors and event-loop stalls to a file
   // so the next incident explains itself. Node's default crash semantics are
   // preserved — this only adds the record before exiting.
-  const logDir = join(getConfigRoot(), "omp-web");
+  const logDir = join(getConfigRoot(), "omp-loom");
   const logPath = join(logDir, "diagnostics.log");
   const appendDiag = (kind: string, detail: string) => {
     try {

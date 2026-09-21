@@ -3,8 +3,8 @@ import { createRequire } from "node:module";
 import test from "node:test";
 
 const require = createRequire(import.meta.url);
-const { parseLaunchOptions } = require("./omp-web-options.js");
-const { runCli } = require("./omp-web-tray.js");
+const { parseLaunchOptions } = require("./omp-loom-options.js");
+const { runCli } = require("./omp-loom-tray.js");
 
 test("parseLaunchOptions parses --install-tray and --install-service flags", () => {
   const opts1 = parseLaunchOptions(["--install-tray"], {});

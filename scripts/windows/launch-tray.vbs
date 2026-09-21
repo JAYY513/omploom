@@ -6,7 +6,7 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 Set shell = CreateObject("WScript.Shell")
 
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
-psScriptPath = fso.BuildPath(scriptDir, "omp-web-tray.ps1")
+psScriptPath = fso.BuildPath(scriptDir, "omp-loom-tray.ps1")
 winDir = shell.ExpandEnvironmentStrings("%SystemRoot%")
 If winDir = "%SystemRoot%" Or winDir = "" Then
     winDir = shell.ExpandEnvironmentStrings("%windir%")

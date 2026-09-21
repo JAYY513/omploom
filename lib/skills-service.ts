@@ -9,7 +9,7 @@ import { annotateSkillsWithInstallInfo } from "@/lib/skill-lock";
 /**
  * Pure-Node skill discovery mirroring omp's providers
  * (oh-my-pi/packages/coding-agent/src/discovery/{builtin,claude,agents,codex,github}.ts).
- * omp-web cannot import the Bun-only SDK, so the scan rules are replicated:
+ * omp-loom cannot import the Bun-only SDK, so the scan rules are replicated:
  * each provider contributes <root>/<name>/SKILL.md skills, higher-priority
  * providers win name collisions, and `enabled: false` frontmatter hides a
  * skill entirely.

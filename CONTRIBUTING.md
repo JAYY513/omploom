@@ -1,4 +1,4 @@
-# Contributing to omp-web
+# Contributing to omp-loom
 
 Thanks for your interest in contributing!
 
@@ -44,7 +44,7 @@ The jsdom dependency stays on 29.x to support the Node 22.19.0 baseline.
   icons come from `lucide-react`.
 - **i18n**: every user-facing string needs entries in all three dictionaries:
   `lib/i18n/locales/{en,zh-CN,ja}.json`.
-- **Architecture**: omp-web never imports `@oh-my-pi/*` or `@earendil-works/*`
+- **Architecture**: omp-loom never imports `@oh-my-pi/*` or `@earendil-works/*`
   packages (Bun-only). Live agent features go through the `omp` child process
   via RPC; see `DESIGN.md` and `AGENTS.md` for the full contract.
 

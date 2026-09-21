@@ -1,18 +1,18 @@
 "use strict";
 
-// Linux system tray for ompweb (KDE Plasma and any StatusNotifierItem host).
+// Linux system tray for omploom (KDE Plasma and any StatusNotifierItem host).
 //
 // Registers a StatusNotifierItem on the session bus with a DBusMenu context
 // menu mirroring the Windows tray: open, copy URL, start/stop/restart the
 // systemd user service, view logs, autostart toggle, quit.
 //
 // CLI:
-//   ompweb-tray --install [--no-autostart]   install icons/autostart, start tray
-//   ompweb-tray --uninstall                  remove autostart and stop the tray
-//   ompweb-tray --start                      run the tray (foreground)
-//   ompweb-tray --stop | --restart           stop/restart a running tray
-//   ompweb-tray --status [--json]            tray + service status
-//   ompweb-tray --open                       open the web UI in the browser
+//   omploom-tray --install [--no-autostart]   install icons/autostart, start tray
+//   omploom-tray --uninstall                  remove autostart and stop the tray
+//   omploom-tray --start                      run the tray (foreground)
+//   omploom-tray --stop | --restart           stop/restart a running tray
+//   omploom-tray --status [--json]            tray + service status
+//   omploom-tray --open                       open the web UI in the browser
 //   -p, --port / -H, --hostname              override status endpoint
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -40,12 +40,12 @@ const { Variant } = dbus;
 
 const execFileAsync = promisify(execFile);
 
-const BUS_NAME = "org.kde.ompweb.tray";
+const BUS_NAME = "org.kde.omploom.tray";
 const ITEM_PATH = "/StatusNotifierItem";
 const MENU_PATH = "/MenuBar";
-const TRAY_PATH = "/ompweb/tray";
-const SERVICE_UNIT = "ompweb.service";
-const AUTOSTART_FILE = path.join(os.homedir(), ".config", "autostart", "ompweb-tray.desktop");
+const TRAY_PATH = "/omploom/tray";
+const SERVICE_UNIT = "omploom.service";
+const AUTOSTART_FILE = path.join(os.homedir(), ".config", "autostart", "omploom-tray.desktop");
 const ICON_DIR = path.join(os.homedir(), ".local", "share", "icons", "hicolor", "scalable", "apps");
 const POLL_INTERVAL_MS = 5000;
 
@@ -157,9 +157,9 @@ function buildIconPixmap(running) {
 }
 
 function printHelp() {
-  console.log(`Usage: ompweb-tray [command] [options]
+  console.log(`Usage: omploom-tray [command] [options]
 
-Linux system tray icon (StatusNotifierItem) for the ompweb web service.
+Linux system tray icon (StatusNotifierItem) for the omploom web service.
 
 Commands:
   --install, install     Install icons + autostart entry, then start the tray
@@ -225,7 +225,7 @@ function readTrayConfig(overrides = {}, env = process.env, home = os.homedir()) 
 // carry a toggle state; `disabled` items are inert status rows.
 function buildMenuItems({ running, version, autostart, hasService, exposed, hasDialogTool }) {
   return [
-    { id: 1, label: `ompweb (v${version})`, enabled: false },
+    { id: 1, label: `omploom (v${version})`, enabled: false },
     { id: 2, label: running ? "  Status: Running" : "  Status: Stopped", enabled: false },
     { id: 3, separator: true },
     { id: 4, label: "Open in Browser", action: "open" },
@@ -298,11 +298,11 @@ function buildAutostartDesktop(execLine) {
   return [
     "[Desktop Entry]",
     "Type=Application",
-    "Name=ompweb Tray",
-    "GenericName=ompweb tray icon",
-    "Comment=ompweb web service tray icon and controls",
+    "Name=omploom Tray",
+    "GenericName=omploom tray icon",
+    "Comment=omploom web service tray icon and controls",
     `Exec=${execLine}`,
-    "Icon=ompweb",
+    "Icon=omploom",
     "Terminal=false",
     "Categories=Network;",
     "X-GNOME-Autostart-enabled=true",
@@ -464,7 +464,7 @@ function viewLogs() {
   const resolved = candidateBinPath(terminal);
   if (!resolved) return false;
   const prefix = terminalPrefix(terminal).slice(1);
-  const child = spawn(resolved, [...prefix, `journalctl --user -u ompweb -f`], {
+  const child = spawn(resolved, [...prefix, `journalctl --user -u omploom -f`], {
     stdio: "ignore",
     detached: true,
     env: process.env,
@@ -508,7 +508,7 @@ class StatusNotifierItem extends Interface {
     return [
       "",
       this.state.running ? buildIconPixmap(true) : buildIconPixmap(false),
-      "ompweb",
+      "omploom",
       this.state.running ? `Running — ${this.state.serviceUrl}` : "Service stopped",
     ];
   }
@@ -566,8 +566,8 @@ StatusNotifierItem.configureMembers({
 });
 
 StatusNotifierItem.prototype.Category = "ApplicationStatus";
-StatusNotifierItem.prototype.Id = "ompweb";
-StatusNotifierItem.prototype.Title = "ompweb";
+StatusNotifierItem.prototype.Id = "omploom";
+StatusNotifierItem.prototype.Title = "omploom";
 // Status, IconName, IconPixmap, and ToolTip stay as class getters (dynamic).
 StatusNotifierItem.prototype.WindowId = 0;
 StatusNotifierItem.prototype.AttentionIconName = "";
@@ -644,7 +644,7 @@ DbusMenu.prototype.IconThemePath = "";
 
 class TrayControl extends Interface {
   constructor(state) {
-    super("org.kde.ompweb.Tray");
+    super("org.kde.omploom.Tray");
     this.state = state;
   }
 
@@ -716,12 +716,12 @@ function createTrayState(config, { log = console.log } = {}) {
     try {
       writeServiceEnv(merged);
     } catch (err) {
-      state.notify("ompweb", `Config write failed: ${err.message}`);
+      state.notify("omploom", `Config write failed: ${err.message}`);
       return false;
     }
     const result = systemctlUser(["restart", SERVICE_UNIT]);
     if (!result.ok) {
-      state.notify("ompweb", `Service restart failed: ${result.stderr || result.stdout || "unknown error"}`);
+      state.notify("omploom", `Service restart failed: ${result.stderr || result.stdout || "unknown error"}`);
       return false;
     }
     state.reloadConfig();
@@ -738,7 +738,7 @@ function createTrayState(config, { log = console.log } = {}) {
     Interface.emitPropertiesChanged(state.sni, {
       IconName: "",
       IconPixmap: buildIconPixmap(state.running),
-      ToolTip: ["", buildIconPixmap(state.running), "ompweb", state.running ? `Running — ${state.serviceUrl}` : "Service stopped"],
+      ToolTip: ["", buildIconPixmap(state.running), "omploom", state.running ? `Running — ${state.serviceUrl}` : "Service stopped"],
     });
     state.sni.NewIcon();
     state.sni.NewToolTip();
@@ -753,7 +753,7 @@ function createTrayState(config, { log = console.log } = {}) {
         openUrl(state.serviceUrl);
         break;
       case "copy":
-        if (!copyToClipboard(state.serviceUrl)) state.notify("ompweb", "No clipboard tool found (install wl-clipboard)");
+        if (!copyToClipboard(state.serviceUrl)) state.notify("omploom", "No clipboard tool found (install wl-clipboard)");
         break;
       case "toggle":
         systemctlUser([state.running ? "stop" : "start", SERVICE_UNIT]);
@@ -762,7 +762,7 @@ function createTrayState(config, { log = console.log } = {}) {
         systemctlUser(["restart", SERVICE_UNIT]);
         break;
       case "logs":
-        if (!viewLogs()) state.notify("ompweb", "No terminal emulator found for logs");
+        if (!viewLogs()) state.notify("omploom", "No terminal emulator found for logs");
         break;
       case "autostart":
         state.setAutostart(!state.autostart);
@@ -773,12 +773,12 @@ function createTrayState(config, { log = console.log } = {}) {
         if (exposing && !readServiceEnv().OMP_WEB_PASSWORD) {
           const password = await dialogPrompt({
             tool: state.dialogTool,
-            title: "ompweb",
+            title: "omploom",
             text: "A password is required to expose the web UI.\nWeb sign-in password:",
             password: true,
           });
           if (!password) {
-            state.notify("ompweb", "Expose cancelled: a password is required to leave loopback");
+            state.notify("omploom", "Expose cancelled: a password is required to leave loopback");
             break;
           }
           updates.OMP_WEB_PASSWORD = password;
@@ -788,7 +788,7 @@ function createTrayState(config, { log = console.log } = {}) {
             .filter((entry) => entry.label !== "Local")
             .map((entry) => entry.url);
           state.notify(
-            "ompweb",
+            "omploom",
             exposing
               ? `Exposed to the network: ${urls[0] ?? `http://0.0.0.0:${state.port}`}`
               : `Restricted to loopback (${state.serviceUrl})`,
@@ -799,25 +799,25 @@ function createTrayState(config, { log = console.log } = {}) {
       case "port": {
         const input = await dialogPrompt({
           tool: state.dialogTool,
-          title: "ompweb",
+          title: "omploom",
           text: `Server port (current: ${state.port}):`,
           value: String(state.port),
         });
         if (input === null) break;
         const port = parseInt(input.trim(), 10);
         if (!Number.isInteger(port) || port < 1 || port > 65535) {
-          state.notify("ompweb", `Invalid port: ${input.trim()}`);
+          state.notify("omploom", `Invalid port: ${input.trim()}`);
           break;
         }
         if (state.applyServiceEnv({ PORT: String(port) })) {
-          state.notify("ompweb", `Port updated: ${state.serviceUrl}`);
+          state.notify("omploom", `Port updated: ${state.serviceUrl}`);
         }
         break;
       }
       case "password": {
         const password = await dialogPrompt({
           tool: state.dialogTool,
-          title: "ompweb",
+          title: "omploom",
           text: "Web sign-in password (empty disables auth):",
           password: true,
         });
@@ -830,7 +830,7 @@ function createTrayState(config, { log = console.log } = {}) {
           if (!isLoopbackHost(state.hostname)) updates.OMP_WEB_HOSTNAME = "127.0.0.1";
         }
         if (state.applyServiceEnv(updates)) {
-          state.notify("ompweb", password ? "Password updated" : "Password disabled (loopback only)");
+          state.notify("omploom", password ? "Password updated" : "Password disabled (loopback only)");
         }
         break;
       }
@@ -853,7 +853,7 @@ function createTrayState(config, { log = console.log } = {}) {
       state.autostart = enable;
       state.refreshMenu();
     } catch (err) {
-      state.notify("ompweb", `Autostart update failed: ${err.message}`);
+      state.notify("omploom", `Autostart update failed: ${err.message}`);
     }
   };
 
@@ -862,7 +862,7 @@ function createTrayState(config, { log = console.log } = {}) {
     try {
       const obj = await state.bus.getProxyObject("org.freedesktop.Notifications", "/org/freedesktop/Notifications");
       const iface = obj.getInterface("org.freedesktop.Notifications");
-      await iface.Notify("ompweb", 0, "ompweb", summary, body, [], {}, 5000);
+      await iface.Notify("omploom", 0, "omploom", summary, body, [], {}, 5000);
     } catch {
       // Notifications are best-effort.
     }
@@ -937,7 +937,7 @@ async function startTray(config, { log = console.log, error = console.error } = 
   }
   // 1 = primary owner, 4 = already ours; anything else means another tray runs.
   if (nameReply !== 1 && nameReply !== 4) {
-    log("ompweb tray is already running");
+    log("omploom tray is already running");
     return state;
   }
 
@@ -957,15 +957,15 @@ async function startTray(config, { log = console.log, error = console.error } = 
   await state.registerWithWatcher();
   state.registerTimer = setInterval(() => state.registerWithWatcher(), 60000);
   state.pollTimer = setInterval(() => state.poll(), POLL_INTERVAL_MS);
-  log(`ompweb tray started (${state.serviceUrl})`);
+  log(`omploom tray started (${state.serviceUrl})`);
   return state;
 }
 
 function installIcons({ log = console.log } = {}) {
   try {
     fs.mkdirSync(ICON_DIR, { recursive: true });
-    fs.writeFileSync(path.join(ICON_DIR, "ompweb.svg"), ICON_RUNNING, { mode: 0o644 });
-    fs.writeFileSync(path.join(ICON_DIR, "ompweb-off.svg"), ICON_STOPPED, { mode: 0o644 });
+    fs.writeFileSync(path.join(ICON_DIR, "omploom.svg"), ICON_RUNNING, { mode: 0o644 });
+    fs.writeFileSync(path.join(ICON_DIR, "omploom-off.svg"), ICON_STOPPED, { mode: 0o644 });
   } catch (err) {
     log(`warning: could not install tray icons: ${err.message}`);
   }
@@ -1005,7 +1005,7 @@ async function quitRunningTray() {
   const bus = dbus.sessionBus();
   try {
     const obj = await bus.getProxyObject(BUS_NAME, TRAY_PATH);
-    const iface = obj.getInterface("org.kde.ompweb.Tray");
+    const iface = obj.getInterface("org.kde.omploom.Tray");
     await iface.Quit();
     return true;
   } catch {
@@ -1080,7 +1080,7 @@ async function runCli(argv = process.argv.slice(2)) {
   });
 
   if (process.platform !== "linux") {
-    console.error("error: the Linux tray is only supported on Linux (see omp-web-tray for Windows)");
+    console.error("error: the Linux tray is only supported on Linux (see omp-loom-tray for Windows)");
     return { exitCode: 1 };
   }
 
@@ -1151,7 +1151,7 @@ async function runCli(argv = process.argv.slice(2)) {
   if (cliArgs.json) {
     console.log(JSON.stringify(status, null, 2));
   } else {
-    console.log(`=== ompweb Linux tray status ===`);
+    console.log(`=== omploom Linux tray status ===`);
     console.log(`  Tray running    : ${status.trayRunning ? "Yes" : "No"}`);
     console.log(`  Service unit    : ${status.serviceInstalled ? "installed" : "not installed"} (${status.serviceRunning ? "active" : "inactive"})`);
     console.log(`  Autostart       : ${status.autostart ? `enabled (${status.autostartFile})` : "disabled"}`);

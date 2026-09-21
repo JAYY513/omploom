@@ -1230,7 +1230,7 @@ export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCal
                   <p className="settings-content-subtitle" style={{ margin: "4px 0 16px", fontSize: 13, color: "var(--text-muted)", lineHeight: 1.45 }}>{t("settingsConfig.systemUpdatesDescription")}</p>
                 </div>
 
-                {/* ompweb app update card */}
+                {/* omploom app update card */}
                 <section style={{ padding: 14, border: appUpdateIsAvailable ? "1px solid color-mix(in srgb, var(--accent) 45%, var(--border))" : "1px solid var(--border)", borderRadius: "var(--radius-card)", background: "var(--bg-panel)", display: "flex", flexDirection: "column", gap: 10 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                     <div>
@@ -1270,11 +1270,11 @@ export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCal
                             {t("settingsConfig.runAppUpdateCommand")}
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <code style={{ flex: 1, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--accent)", wordBreak: "break-all" }}>{appUpdate.updateCommand || "npm install -g @kahme247/ompweb"}</code>
+                            <code style={{ flex: 1, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--accent)", wordBreak: "break-all" }}>{appUpdate.updateCommand || "npm install -g omploom"}</code>
                             <button
                               type="button"
                               onClick={() => {
-                                void copyText(appUpdate.updateCommand || "npm install -g @kahme247/ompweb")
+                                void copyText(appUpdate.updateCommand || "npm install -g omploom")
                                   .then(() => toast.success(t("appShell.commandCopied")))
                                   .catch(() => toast.error(t("appShell.commandCopyFailed")));
                               }}

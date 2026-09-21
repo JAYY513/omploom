@@ -64,7 +64,7 @@ function updateStatus(patch) {
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 function isLaunchdActive() {
   try {
-    const plist = path.join(os.homedir(), "Library", "LaunchAgents", "com.kahme247.ompweb.plist");
+    const plist = path.join(os.homedir(), "Library", "LaunchAgents", "com.jayy513.omploom.plist");
     return fs.existsSync(plist);
   } catch { return false; }
 }
@@ -85,13 +85,13 @@ async function stopOriginalProcesses() {
   if (launchd) {
     try {
       const uid = typeof process.getuid === "function" ? process.getuid() : 501;
-      cp.spawnSync("launchctl", ["bootout", `gui/${uid}/com.kahme247.ompweb`], { timeout: 15000, windowsHide: true });
+      cp.spawnSync("launchctl", ["bootout", `gui/${uid}/com.jayy513.omploom`], { timeout: 15000, windowsHide: true });
     } catch {}
     await sleep(500);
   }
   if (tray) {
     try {
-      const trayBin = path.join(packageDir, "bin", "omp-web-tray.js");
+      const trayBin = path.join(packageDir, "bin", "omp-loom-tray.js");
       if (fs.existsSync(trayBin)) {
         cp.spawnSync(process.execPath, [trayBin, "--stop"], { timeout: 15000, windowsHide: true });
       }
@@ -131,7 +131,7 @@ async function runManagerGate() {
   }
   // App update via npm/bun
   const cmd = manager === "bun" ? (managerPath || "bun") : (managerPath || "npm");
-  const args = manager === "bun" ? ["add", "-g", `@kahme247/ompweb@${target}`] : ["install", "-g", `@kahme247/ompweb@${target}`];
+  const args = manager === "bun" ? ["add", "-g", `omploom@${target}`] : ["install", "-g", `omploom@${target}`];
   if (Array.isArray(managerPrefix) && managerPrefix.length) args.unshift(...managerPrefix);
   let retries = 0;
   let lastResult;
@@ -161,14 +161,14 @@ async function restartServices(info) {
   if (info.launchd) {
     try {
       const uid = typeof process.getuid === "function" ? process.getuid() : 501;
-      cp.spawnSync("launchctl", ["bootstrap", `gui/${uid}`, path.join(os.homedir(), "Library", "LaunchAgents", "com.kahme247.ompweb.plist")], { timeout: 15000, windowsHide: true });
+      cp.spawnSync("launchctl", ["bootstrap", `gui/${uid}`, path.join(os.homedir(), "Library", "LaunchAgents", "com.jayy513.omploom.plist")], { timeout: 15000, windowsHide: true });
     } catch {}
     await sleep(1000);
     return;
   }
   if (info.tray) {
     try {
-      const trayBin = path.join(packageDir, "bin", "omp-web-tray.js");
+      const trayBin = path.join(packageDir, "bin", "omp-loom-tray.js");
       if (fs.existsSync(trayBin)) {
         cp.spawn(process.execPath, [trayBin, "--start"], { detached: true, stdio: "ignore", windowsHide: true }).unref();
       }

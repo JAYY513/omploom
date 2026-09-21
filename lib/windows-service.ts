@@ -148,7 +148,7 @@ export function getWebServiceConfigPath(): string {
 }
 
 export function getWebServiceLogPath(): string {
-  return path.join(getAgentDir(), "logs", "omp-web-service.log");
+  return path.join(getAgentDir(), "logs", "omp-loom-service.log");
 }
 
 export function getWindowsShortcutPaths(): { desktop: string; startMenu: string; startup: string } {
@@ -156,18 +156,18 @@ export function getWindowsShortcutPaths(): { desktop: string; startMenu: string;
   const appData = process.env.APPDATA || path.join(home, "AppData", "Roaming");
 
   let desktopDir = path.join(home, "Desktop");
-  if (process.env.OneDrive && existsSync(path.join(process.env.OneDrive, "Desktop", "omp-web.lnk"))) {
+  if (process.env.OneDrive && existsSync(path.join(process.env.OneDrive, "Desktop", "omp-loom.lnk"))) {
     desktopDir = path.join(process.env.OneDrive, "Desktop");
-  } else if (process.env.OneDriveConsumer && existsSync(path.join(process.env.OneDriveConsumer, "Desktop", "omp-web.lnk"))) {
+  } else if (process.env.OneDriveConsumer && existsSync(path.join(process.env.OneDriveConsumer, "Desktop", "omp-loom.lnk"))) {
     desktopDir = path.join(process.env.OneDriveConsumer, "Desktop");
-  } else if (existsSync(path.join(home, "OneDrive", "Desktop", "omp-web.lnk"))) {
+  } else if (existsSync(path.join(home, "OneDrive", "Desktop", "omp-loom.lnk"))) {
     desktopDir = path.join(home, "OneDrive", "Desktop");
   }
 
   return {
-    desktop: path.join(desktopDir, "omp-web.lnk"),
-    startMenu: path.join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "omp-web.lnk"),
-    startup: path.join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "omp-web-tray.lnk"),
+    desktop: path.join(desktopDir, "omp-loom.lnk"),
+    startMenu: path.join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "omp-loom.lnk"),
+    startup: path.join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "omp-loom-tray.lnk"),
   };
 }
 
@@ -261,7 +261,7 @@ export async function isTrayProcessRunning(): Promise<boolean> {
         "-ExecutionPolicy",
         "Bypass",
         "-Command",
-        '$procs = Get-CimInstance Win32_Process -Filter "Name LIKE \'%powershell%\' OR Name LIKE \'%pwsh%\' OR Name LIKE \'%omp-web-tray%\'" -ErrorAction SilentlyContinue | Where-Object { $_.ProcessId -ne $PID -and ($_.CommandLine -like \'*omp-web-tray.ps1*\' -or $_.CommandLine -like \'*omp-web-service.ps1*\' -or $_.CommandLine -like \'*omp-web-tray.exe*\') }; ($procs | Measure-Object).Count',
+        '$procs = Get-CimInstance Win32_Process -Filter "Name LIKE \'%powershell%\' OR Name LIKE \'%pwsh%\' OR Name LIKE \'%omp-loom-tray%\'" -ErrorAction SilentlyContinue | Where-Object { $_.ProcessId -ne $PID -and ($_.CommandLine -like \'*omp-loom-tray.ps1*\' -or $_.CommandLine -like \'*omp-loom-service.ps1*\' -or $_.CommandLine -like \'*omp-loom-tray.exe*\') }; ($procs | Measure-Object).Count',
       ],
       { timeout: 4000, env: getWindowsExecutionEnv(), windowsHide: true }
     );
@@ -291,7 +291,7 @@ export async function getWebServiceStatus(): Promise<WebServiceStatus> {
   const isInstalled = desktopExists || startMenuExists || startupExists || existsSync(getWebServiceConfigPath());
   let isRunning = await isTrayProcessRunning();
   // Fallback: tray process detection via WMI CommandLine can miss hidden wscript-launched
-  // powershell (or manual `node bin/omp-web.js start`). If the service URL is
+  // powershell (or manual `node bin/omp-loom.js start`). If the service URL is
   // actually listening, report as running even when tray detection fails.
   if (!isRunning) {
     const host = config.hostname || "127.0.0.1";
@@ -435,7 +435,7 @@ export async function toggleAutostart(enable: boolean): Promise<{ success: boole
   await saveWebServiceConfig({ autostart: enable });
   const repoRoot = getRepoRoot();
   const launchVbs = path.join(repoRoot, "scripts", "windows", "launch-tray.vbs");
-  const icoPath = path.join(repoRoot, "public", "omp-web.ico");
+  const icoPath = path.join(repoRoot, "public", "omp-loom.ico");
   const { startup: startupLnk } = getWindowsShortcutPaths();
 
   try {
@@ -448,7 +448,7 @@ export async function toggleAutostart(enable: boolean): Promise<{ success: boole
         $sc.Arguments = '"${launchVbs.replace(/"/g, '`"')}" -Startup'
         $sc.WorkingDirectory = '${repoRoot.replace(/'/g, "''")}'
         if (Test-Path '${icoPath.replace(/'/g, "''")}') { $sc.IconLocation = '${icoPath.replace(/'/g, "''")},0' }
-        $sc.Description = 'omp-web Background Tray Service'
+        $sc.Description = 'omp-loom Background Tray Service'
         $sc.Save()
       `;
       const psExe = resolvePowerShellBin();
@@ -478,9 +478,9 @@ export async function startTrayService(options: { openBrowser?: boolean } = {}):
   try {
     // Check if task exists: schtasks /query returns 0 if found.
     try {
-      await execFileAsync("schtasks.exe", ["/query", "/tn", "omp-web"], { timeout: 3000, env: getWindowsExecutionEnv(), windowsHide: true });
+      await execFileAsync("schtasks.exe", ["/query", "/tn", "omp-loom"], { timeout: 3000, env: getWindowsExecutionEnv(), windowsHide: true });
       // Task exists, try to run it (ONLOGON tasks can be triggered via /run even without logon trigger).
-      await execFileAsync("schtasks.exe", ["/run", "/tn", "omp-web"], { timeout: 5000, env: getWindowsExecutionEnv(), windowsHide: true });
+      await execFileAsync("schtasks.exe", ["/run", "/tn", "omp-loom"], { timeout: 5000, env: getWindowsExecutionEnv(), windowsHide: true });
       invalidateTrayRunningCache();
       // Optionally open browser if requested.
       if (options.openBrowser) {
@@ -494,7 +494,7 @@ export async function startTrayService(options: { openBrowser?: boolean } = {}):
     }
   } catch { }
   // Native tray exe (dotnet WinForms) — most reliable, no hidden wscript heap.
-  const nativeExe = path.join(getRepoRoot(), "bin", "omp-web-tray.exe");
+  const nativeExe = path.join(getRepoRoot(), "bin", "omp-loom-tray.exe");
   if (existsSync(nativeExe)) {
     try {
       const nativeArgs: string[] = [];
@@ -581,16 +581,16 @@ export async function stopTrayService(): Promise<{ success: boolean; message?: s
   try {
     // Try to end Scheduled Task first (headless service)
     try {
-      await execFileAsync("schtasks.exe", ["/end", "/tn", "omp-web"], { timeout: 3000, env: getWindowsExecutionEnv(), windowsHide: true });
+      await execFileAsync("schtasks.exe", ["/end", "/tn", "omp-loom"], { timeout: 3000, env: getWindowsExecutionEnv(), windowsHide: true });
     } catch { }
     const taskkillExe = resolveTaskkillBin();
     const psCommand = `
-      $trayProcs = Get-CimInstance Win32_Process -Filter "Name LIKE '%powershell%' OR Name LIKE '%pwsh%' OR Name LIKE '%omp-web-tray%'" -ErrorAction SilentlyContinue | Where-Object { $_.ProcessId -ne $PID -and ($_.CommandLine -like '*omp-web-tray.ps1*' -or $_.CommandLine -like '*omp-web-service.ps1*' -or $_.CommandLine -like '*omp-web-tray.exe*') }
+      $trayProcs = Get-CimInstance Win32_Process -Filter "Name LIKE '%powershell%' OR Name LIKE '%pwsh%' OR Name LIKE '%omp-loom-tray%'" -ErrorAction SilentlyContinue | Where-Object { $_.ProcessId -ne $PID -and ($_.CommandLine -like '*omp-loom-tray.ps1*' -or $_.CommandLine -like '*omp-loom-service.ps1*' -or $_.CommandLine -like '*omp-loom-tray.exe*') }
       foreach ($p in $trayProcs) {
           Start-Process -FilePath '${taskkillExe.replace(/'/g, "''")}' -ArgumentList "/PID $($p.ProcessId) /T /F" -WindowStyle Hidden -Wait -ErrorAction SilentlyContinue | Out-Null
       }
       # Also kill native tray exe directly by name (in case CommandLine is empty)
-      $nativeProcs = Get-CimInstance Win32_Process -Filter "Name = 'omp-web-tray.exe'" -ErrorAction SilentlyContinue
+      $nativeProcs = Get-CimInstance Win32_Process -Filter "Name = 'omp-loom-tray.exe'" -ErrorAction SilentlyContinue
       foreach ($p in $nativeProcs) {
           Start-Process -FilePath '${taskkillExe.replace(/'/g, "''")}' -ArgumentList "/PID $($p.ProcessId) /T /F" -WindowStyle Hidden -Wait -ErrorAction SilentlyContinue | Out-Null
       }

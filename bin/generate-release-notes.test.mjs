@@ -40,10 +40,10 @@ Older release notes.
 
   it('cleans commit subjects and transforms PR links', () => {
     const raw = 'feat(composer): expand queued prompts (#12)';
-    const cleaned = cleanSubject(raw, 'kahme247/ompweb');
+    const cleaned = cleanSubject(raw, 'JAYY513/omploom');
     assert.equal(
       cleaned,
-      'Expand queued prompts ([#12](https://github.com/kahme247/ompweb/pull/12))'
+      'Expand queued prompts ([#12](https://github.com/JAYY513/omploom/pull/12))'
     );
   });
 
@@ -97,7 +97,7 @@ Older release notes.
       version: '0.4.0',
       commits,
       previousTag: 'v0.3.6',
-      repo: 'kahme247/ompweb',
+      repo: 'JAYY513/omploom',
     });
 
     assert.match(notes, /## Highlights/);
@@ -107,6 +107,6 @@ Older release notes.
     assert.match(notes, /## Contributors/);
     assert.match(notes, /@alice/);
     assert.match(notes, /@bob/);
-    assert.match(notes, /npm install -g @kahme247\/ompweb@0\.4\.0/);
+    assert.match(notes, /npm install -g omploom@0\.4\.0/);
   });
 });

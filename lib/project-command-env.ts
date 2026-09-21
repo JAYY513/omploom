@@ -1,5 +1,5 @@
 /**
- * Remove variables owned by the omp-web host before starting a project
+ * Remove variables owned by the omp-loom host before starting a project
  * process. These values describe the Next.js server, not the selected project,
  * and can make project commands behave as if they were running inside the web
  * app.

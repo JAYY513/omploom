@@ -4,7 +4,7 @@ import * as undici from "undici";
 export const DEFAULT_HTTP_IDLE_TIMEOUT_MS = 300_000;
 
 type DispatcherGlobal = typeof globalThis & {
-  __ompWebHttpDispatcherConfigured?: boolean;
+  __ompLoomHttpDispatcherConfigured?: boolean;
 };
 
 const dispatcherGlobal = globalThis as DispatcherGlobal;
@@ -58,7 +58,7 @@ function createUndiciOriginDispatcher(origin: string | URL, options: object): un
 export function configureHttpDispatcher(
   timeoutMs: number = DEFAULT_HTTP_IDLE_TIMEOUT_MS,
 ): void {
-  if (dispatcherGlobal.__ompWebHttpDispatcherConfigured) return;
+  if (dispatcherGlobal.__ompLoomHttpDispatcherConfigured) return;
 
   const normalizedTimeoutMs = parseHttpIdleTimeoutMs(timeoutMs);
   if (normalizedTimeoutMs === undefined) {
@@ -82,5 +82,5 @@ export function configureHttpDispatcher(
     undici.install?.();
   }
 
-  dispatcherGlobal.__ompWebHttpDispatcherConfigured = true;
+  dispatcherGlobal.__ompLoomHttpDispatcherConfigured = true;
 }

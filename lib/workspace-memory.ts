@@ -1,6 +1,6 @@
 import type { SessionInfo } from "./types";
 
-const STORAGE_KEY = "omp-web:last-open-by-project";
+const STORAGE_KEY = "omp-loom:last-open-by-project";
 
 interface StorageLike {
   getItem(key: string): string | null;

@@ -36,7 +36,7 @@ let
     hash = "sha256-c4lOBEjK6QqStsL4cyt7uay3uUxBi/9Vna1KGOHellk=";
   };
 
-  localFontsPatch = writeText "ompweb-local-fonts.patch" ''
+  localFontsPatch = writeText "omploom-local-fonts.patch" ''
     diff --git a/app/layout.tsx b/app/layout.tsx
     --- a/app/layout.tsx
     +++ b/app/layout.tsx
@@ -133,7 +133,7 @@ let
   version = (builtins.fromJSON (builtins.readFile ../package.json)).version;
 in
 buildNpmPackage (finalAttrs: {
-  pname = "ompweb";
+  pname = "omploom";
   inherit src version;
   
   patches = [ localFontsPatch ];

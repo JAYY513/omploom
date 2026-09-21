@@ -104,7 +104,7 @@ export class RpcProcess {
     if (options.onFrame) this.frameListeners.add(options.onFrame);
 
     const args = ["--mode", "rpc-ui", "--cwd", options.cwd, ...(options.extraArgs ?? [])];
-    // omp-web ignores named profiles (OMP_PROFILE/PI_PROFILE): strip them so the
+    // omp-loom ignores named profiles (OMP_PROFILE/PI_PROFILE): strip them so the
     // child resolves the same default agent dir. An explicit options.env entry
     // still wins (used to force the default profile for isolated test runs).
     const childEnv = sanitizeProjectCommandEnvironment({ ...process.env, ...options.env });

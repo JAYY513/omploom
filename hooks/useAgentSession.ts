@@ -512,7 +512,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       setActiveGoal(null);
       return;
     }
-    setActiveGoal(parseActiveGoal(sessionStorage.getItem(`omp-web:goal:${sid}`)));
+    setActiveGoal(parseActiveGoal(sessionStorage.getItem(`omp-loom:goal:${sid}`)));
   }, [session?.id]);
 
   // A plan request is in progress only for its current agent turn.
@@ -1132,7 +1132,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   }, []);
 
   // ---------------------------------------------------------------------
-  // Host-tool bridge: omp-web registers tools the AGENT can call. The server
+  // Host-tool bridge: omp-loom registers tools the AGENT can call. The server
   // emits host_tool_call frames; this UI executes them and answers with
   // host_tool_result (lib/rpc-manager routes registered tools to listeners).
   // The built-in `ask` tool already covers user questions via the extension
@@ -1270,7 +1270,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         break;
       }
       default:
-        await respondHostTool(sid, id, `Host tool \"${toolName}\" is not available in omp-web`, true);
+        await respondHostTool(sid, id, `Host tool \"${toolName}\" is not available in omp-loom`, true);
     }
   }, [onOpenFile, respondHostTool]);
 
@@ -1298,7 +1298,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
           await respondHostUri(sid, id, { content: text || "(clipboard is empty)", contentType: "text/plain" });
         } catch {
           // Permission denied / document not focused: surface a readable error.
-          await respondHostUri(sid, id, { isError: true, error: "Clipboard read was denied. Click into the omp-web window and try again." });
+          await respondHostUri(sid, id, { isError: true, error: "Clipboard read was denied. Click into the omp-loom window and try again." });
         }
         return;
       }
@@ -3063,7 +3063,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
             const goal = createActiveGoal(args);
             setActiveGoal(goal);
             const activeSessionId = sessionIdRef.current;
-            if (activeSessionId) sessionStorage.setItem(`omp-web:goal:${activeSessionId}`, JSON.stringify(goal));
+            if (activeSessionId) sessionStorage.setItem(`omp-loom:goal:${activeSessionId}`, JSON.stringify(goal));
           }
           return { handled: true };
         }

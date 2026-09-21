@@ -1,26 +1,26 @@
-# ompweb
+# omploom
 
-[![npm version](https://img.shields.io/npm/v/@kahme247/ompweb.svg?logo=npm&color=e05d44)](https://www.npmjs.com/package/@kahme247/ompweb)
-[![node version](https://img.shields.io/node/v/@kahme247/ompweb.svg?logo=node.js&color=44cc11)](https://nodejs.org)
-[![license](https://img.shields.io/github/license/kahme247/ompweb.svg?color=44cc11)](./LICENSE)
-[![npm downloads](https://img.shields.io/npm/dm/@kahme247/ompweb.svg?color=44cc11)](https://www.npmjs.com/package/@kahme247/ompweb)
-[![GitHub stars](https://img.shields.io/github/stars/kahme247/ompweb.svg?logo=github)](https://github.com/kahme247/ompweb/stargazers)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/kahme247/ompweb/pulls)
+[![npm version](https://img.shields.io/npm/v/omploom.svg?logo=npm&color=e05d44)](https://www.npmjs.com/package/omploom)
+[![node version](https://img.shields.io/node/v/omploom.svg?logo=node.js&color=44cc11)](https://nodejs.org)
+[![license](https://img.shields.io/github/license/JAYY513/omploom.svg?color=44cc11)](./LICENSE)
+[![npm downloads](https://img.shields.io/npm/dm/omploom.svg?color=44cc11)](https://www.npmjs.com/package/omploom)
+[![GitHub stars](https://img.shields.io/github/stars/JAYY513/omploom.svg?logo=github)](https://github.com/JAYY513/omploom/stargazers)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/JAYY513/omploom/pulls)
 
 [English](./README.md) | [简体中文](./README.zh-CN.md) | [日本語](./README.ja.md)
+> **omploom** is a fork of [ompweb](https://github.com/kahme247/ompweb) (MIT): a web workbench for the [oh-my-pi (omp)](https://github.com/can1357/oh-my-pi) coding agent.
 
-コミュニティ：[OMPWEB Discord に参加](https://discord.gg/evqgGzRfM5)
 
 [oh-my-pi (omp)](https://github.com/can1357/oh-my-pi) コーディングエージェント向けのモダンな Web UI です。ローカルの omp セッションを読み込み、ブラウザから対話、プロジェクト閲覧、設定管理、ファイルプレビューを行えるワークスペースを提供します。
 
-![ompweb — デモ](docs/demo.gif)
+![omploom — デモ](docs/demo.gif)
 
 <details>
 <summary>スクリーンショット（ライト / ダークテーマ）</summary>
 
-![ompweb — ライトテーマ](docs/screenshot-light.png)
+![omploom — ライトテーマ](docs/screenshot-light.png)
 
-![ompweb — ダークテーマ](docs/screenshot-dark.png)
+![omploom — ダークテーマ](docs/screenshot-dark.png)
 
 </details>
 
@@ -34,14 +34,14 @@
 **インストールせずに直接実行:**
 
 ```bash
-npx @kahme247/ompweb@latest
+npx omploom@latest
 ```
 
 **またはグローバルにインストール:**
 
 ```bash
-npm install -g @kahme247/ompweb
-ompweb
+npm install -g omploom
+omploom
 ```
 
 ブラウザで [http://127.0.0.1:30177](http://127.0.0.1:30177) を開きます。
@@ -49,10 +49,10 @@ ompweb
 ### CLI オプション
 
 ```bash
-ompweb --port 8080                         # ポート番号指定
-ompweb --hostname 0.0.0.0                  # ネットワーク公開
-ompweb --password "your-password"          # パスワード認証を有効化
-ompweb --no-open                           # ブラウザ自動起動を無効化
+omploom --port 8080                         # ポート番号指定
+omploom --hostname 0.0.0.0                  # ネットワーク公開
+omploom --password "your-password"          # パスワード認証を有効化
+omploom --no-open                           # ブラウザ自動起動を無効化
 ```
 
 ## 主な機能
@@ -85,8 +85,8 @@ ompweb --no-open                           # ブラウザ自動起動を無効�
 ## 開発
 
 ```bash
-git clone https://github.com/kahme247/ompweb.git
-cd ompweb
+git clone https://github.com/JAYY513/omploom.git
+cd omploom
 npm install
 npm run dev
 ```

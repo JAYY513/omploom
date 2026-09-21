@@ -61,10 +61,10 @@ jobs:
       - name: Verify Windows System Tray & Shortcuts (Windows only)
         if: runner.os == 'Windows'
         run: |
-          node bin/omp-web-tray.js --status
-          node bin/omp-web-tray.js --install
-          node bin/omp-web-tray.js --status
-          node bin/omp-web-tray.js --uninstall
+          node bin/omp-loom-tray.js --status
+          node bin/omp-loom-tray.js --install
+          node bin/omp-loom-tray.js --status
+          node bin/omp-loom-tray.js --uninstall
 
   pr-rules:
     name: PR Rules & Quality Gates

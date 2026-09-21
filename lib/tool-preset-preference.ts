@@ -1,6 +1,6 @@
 import { isToolPreset, type ToolPreset } from "./tool-presets";
 
-const STORAGE_KEY = "omp-web:tool-preset";
+const STORAGE_KEY = "omp-loom:tool-preset";
 
 interface StorageLike {
   getItem(key: string): string | null;

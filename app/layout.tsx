@@ -43,12 +43,12 @@ const notoSerifSC = Noto_Serif_SC({
 });
 
 export const metadata: Metadata = {
-  title: "omp web",
+  title: "omp loom",
   description: "Web UI for the oh-my-pi (omp) coding agent",
   // PWA-like behavior on iOS: standalone chrome, no telephone autodetect.
   appleWebApp: {
     capable: true,
-    title: "omp web",
+    title: "omp loom",
     statusBarStyle: "default",
   },
   formatDetection: {

@@ -50,7 +50,7 @@ test("sanitizeHostname trims strings and rejects empties", () => {
 });
 
 test("readTrayConfig prefers CLI overrides over the service config file", () => {
-  const home = mkdtempSync(path.join(tmpdir(), "ompweb-tray-"));
+  const home = mkdtempSync(path.join(tmpdir(), "omploom-tray-"));
   try {
     const agentDir = path.join(home, ".omp", "agent");
     mkdirSync(agentDir, { recursive: true });
@@ -70,7 +70,7 @@ test("readTrayConfig prefers CLI overrides over the service config file", () => 
 });
 
 test("readTrayConfig falls back to defaults without a config file", () => {
-  const home = mkdtempSync(path.join(tmpdir(), "ompweb-tray-"));
+  const home = mkdtempSync(path.join(tmpdir(), "omploom-tray-"));
   try {
     const config = readTrayConfig({}, {}, home);
     assert.equal(config.port, 30177);
@@ -142,9 +142,9 @@ test("buildLayout nests all items under the root with the given revision", () =>
 });
 
 test("autostart desktop file references the tray script", () => {
-  const desktop = buildAutostartDesktop("/usr/bin/node /opt/ompweb/bin/linux-tray.js --start");
+  const desktop = buildAutostartDesktop("/usr/bin/node /opt/omploom/bin/linux-tray.js --start");
   assert.match(desktop, /^\[Desktop Entry\]/);
-  assert.match(desktop, /^Exec=\/usr\/bin\/node \/opt\/ompweb\/bin\/linux-tray\.js --start$/m);
+  assert.match(desktop, /^Exec=\/usr\/bin\/node \/opt\/omploom\/bin\/linux-tray\.js --start$/m);
   assert.match(desktop, /^Terminal=false$/m);
   assert.match(desktop, /^X-KDE-autostart-after=panel$/m);
 });
@@ -236,7 +236,7 @@ broken line without equals
 });
 
 test("writeServiceEnv writes atomically with mode 600 and readServiceEnv round-trips", () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "ompweb-env-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "omploom-env-"));
   try {
     const file = path.join(dir, "web-service.env");
     writeServiceEnv({ PORT: "40100", OMP_WEB_PASSWORD: "s3cret" }, file);
@@ -253,7 +253,7 @@ test("writeServiceEnv writes atomically with mode 600 and readServiceEnv round-t
 });
 
 test("readTrayConfig prefers the env file over the JSON config", () => {
-  const home = mkdtempSync(path.join(tmpdir(), "ompweb-tray-"));
+  const home = mkdtempSync(path.join(tmpdir(), "omploom-tray-"));
   try {
     const agentDir = path.join(home, ".omp", "agent");
     mkdirSync(agentDir, { recursive: true });

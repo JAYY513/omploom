@@ -1,7 +1,7 @@
 // Types mirrored from oh-my-pi coding-agent session-entries (v3 format).
 import type { TodoPhase } from "./pi-types";
 
-// omp-web cannot import the Bun-only @oh-my-pi packages, so the on-disk
+// omp-loom cannot import the Bun-only @oh-my-pi packages, so the on-disk
 // shapes are re-declared here. Legacy pi v1/v2 fields are kept optional.
 
 export type SessionTitleSource = "auto" | "user";

@@ -170,7 +170,7 @@ export function restoreArchivedSession(key: string, sessionsRoot = getSessionsDi
   if (existsSync(destination) || existsSync(destinationArtifacts)) throw new Error("Active session destination already exists");
 
   const restored = gunzipSync(readFileSync(source));
-  const tempDir = mkdtempSync(path.join(path.dirname(destination), ".omp-web-restore-"));
+  const tempDir = mkdtempSync(path.join(path.dirname(destination), ".omp-loom-restore-"));
   const tempFile = path.join(tempDir, path.basename(destination));
   let destinationCreated = false;
   let artifactsMoved = false;

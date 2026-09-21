@@ -37,7 +37,7 @@ const nextConfig = (phase: string): NextConfig => {
             "**/../**",
             "**/Users/**",
             "**/Application Data/**",
-            "**/omp-web-bundled-agents/**",
+            "**/omp-loom-bundled-agents/**",
           );
         }
       }

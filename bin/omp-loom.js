@@ -10,14 +10,14 @@ if (!isNodeVersionSupported(process.versions.node)) {
 }
 
 // Forward service subcommands from the main bin. This makes both
-// `npx @kahme247/ompweb@latest ompweb-launchd ...` and
-// `npx @kahme247/ompweb@latest ompweb-systemd ...` work without requiring
+// `npx omploom@latest omploom-launchd ...` and
+// `npx omploom@latest omploom-systemd ...` work without requiring
 // callers to know the path of the secondary executable.
 const forwardedServiceScripts = {
-  launchd: "omp-web-launchd.js",
-  "ompweb-launchd": "omp-web-launchd.js",
-  systemd: "omp-web-systemd.js",
-  "ompweb-systemd": "omp-web-systemd.js",
+  launchd: "omp-loom-launchd.js",
+  "omploom-launchd": "omp-loom-launchd.js",
+  systemd: "omp-loom-systemd.js",
+  "omploom-systemd": "omp-loom-systemd.js",
 };
 const forwardedServiceScript = forwardedServiceScripts[process.argv[2]];
 if (forwardedServiceScript) {
@@ -42,7 +42,7 @@ const fs = require("node:fs");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const crypto = require("node:crypto");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { parseLaunchOptions } = require("./omp-web-options");
+const { parseLaunchOptions } = require("./omp-loom-options");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { isPortAvailable } = require("./port-availability");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -51,11 +51,11 @@ const { terminateChildProcess, wireChildProcessLifecycle } = require("./process-
 const { getAccessibleAddresses, getBrowserUrl, formatAddressBanner, isLoopbackHost } = require("./network-addresses");
 
 const UPDATE_PROTOCOL = 1;
-const UPDATE_MESSAGE = "ompweb:update-control";
-const UPDATE_ACK = "ompweb:update-control-ack";
+const UPDATE_MESSAGE = "omploom:update-control";
+const UPDATE_ACK = "omploom:update-control-ack";
 const RESTART_ACK_RETRIES = 3;
 const RESTART_ACK_RETRY_MS = 100;
-const RESTART_GATE_START = "ompweb:restart-gate-start";
+const RESTART_GATE_START = "omploom:restart-gate-start";
 
 function runRestartGate(startMessageType) {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -158,7 +158,7 @@ if (launchOptions.help || launchOptions.version) {
 
 if (launchOptions.installTray || launchOptions.uninstallTray || launchOptions.tray) {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { runCli } = require("./omp-web-tray");
+  const { runCli } = require("./omp-loom-tray");
   const trayArgs = [];
   if (launchOptions.installTray) {
     trayArgs.push("--install");
@@ -188,7 +188,7 @@ const passwordEnabled = typeof password === "string" && password.length > 0;
 
 const nextArgs = ["start", "-p", port, "-H", hostname];
 const restartDescriptor = JSON.stringify({
-  launcherPath: path.join(pkgDir, "bin", "omp-web.js"),
+  launcherPath: path.join(pkgDir, "bin", "omp-loom.js"),
   hostname: String(hostname),
   port: String(port),
 });
@@ -426,7 +426,7 @@ function trackServer(child) {
   currentChild = child;
   child.on("message", (message) => handleUpdateArm(child, message));
   child.once("error", (error) => {
-    console.error(`Could not start ompweb: ${error.message}`);
+    console.error(`Could not start omploom: ${error.message}`);
     if (Number.isInteger(child.pid) && child.pid > 0) return;
     if (currentChild === child) currentChild = null;
     if (updateControl) {
@@ -557,12 +557,12 @@ async function main() {
       console.error(`Refusing to listen on ${hostname} without OMP_WEB_PASSWORD (or --password). Set a strong password or bind to 127.0.0.1.`);
       process.exit(1);
     }
-    console.warn(`Warning: ompweb is listening on ${hostname} over HTTP. Use HTTPS or a trusted VPN to protect the password and session cookie in transit.`);
+    console.warn(`Warning: omploom is listening on ${hostname} over HTTP. Use HTTPS or a trusted VPN to protect the password and session cookie in transit.`);
   }
 
   if (!await isPortAvailable(port, hostname)) {
     console.error(`Port ${port} on ${hostname} is already in use.`);
-    console.error(`If ompweb is already running, open ${browserUrl}. Otherwise, stop the process using it or run: ompweb --port ${Number(port) + 1}`);
+    console.error(`If omploom is already running, open ${browserUrl}. Otherwise, stop the process using it or run: omploom --port ${Number(port) + 1}`);
     process.exitCode = 1;
     return;
   }

@@ -6,7 +6,7 @@ import { RpcCommandError } from "@/lib/omp/rpc-process";
 import { parseJsonWithinLimit, RequestBodyTooLargeError } from "@/lib/bounded-form-data";
 import { MAX_AGENT_COMMAND_REQUEST_BYTES } from "@/lib/image-attachments";
 
-/** omp-web's own failures carry a stable code the client can localize; omp's
+/** omp-loom's own failures carry a stable code the client can localize; omp's
  * errors stay opaque English text. */
 function commandErrorResponse(error: unknown) {
   if (error instanceof RequestBodyTooLargeError) {

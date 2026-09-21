@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Headless omp-web background service (no System Tray UI).
+    Headless omp-loom background service (no System Tray UI).
     Used by Task Scheduler for reliable autostart without desktop-heap issues.
 #>
 param(
@@ -38,7 +38,7 @@ if ($EffectiveMode -eq "start" -and !(Test-Path $NextDir)) {
 $ServerUrl = if ($EffectiveHostname -eq "0.0.0.0" -or $EffectiveHostname -eq "::" -or [string]::IsNullOrWhiteSpace($EffectiveHostname)) { "http://localhost:$EffectivePort" } else { "http://${EffectiveHostname}:$EffectivePort" }
 
 # Mutex to prevent duplicate service instances
-$MutexName = "Local\OmpWebService_Instance_Mutex"
+$MutexName = "Local\OmpLoomService_Instance_Mutex"
 $createdNew = $false
 try { $script:AppMutex = New-Object System.Threading.Mutex($true, $MutexName, [ref]$createdNew) } catch { $createdNew = $true }
 if (!$createdNew) { Exit 0 }
@@ -46,8 +46,8 @@ if (!$createdNew) { Exit 0 }
 # Logging
 $LogDir = Join-Path $env:USERPROFILE ".omp\agent\logs"
 if (!(Test-Path $LogDir)) { New-Item -Path $LogDir -ItemType Directory -Force | Out-Null }
-$LogFile = Join-Path $LogDir "omp-web-service.log"
-$OldLogFile = Join-Path $LogDir "omp-web-service.old.log"
+$LogFile = Join-Path $LogDir "omp-loom-service.log"
+$OldLogFile = Join-Path $LogDir "omp-loom-service.old.log"
 if (Test-Path $LogFile) {
     try {
         $logItem = Get-Item $LogFile
@@ -63,7 +63,7 @@ function Write-ServiceLog([string]$message) {
     finally { [System.Threading.Monitor]::Exit($script:LogLock) }
 }
 Write-ServiceLog "=========================================="
-Write-ServiceLog "omp-web Service v$PkgVersion starting (headless)"
+Write-ServiceLog "omp-loom Service v$PkgVersion starting (headless)"
 Write-ServiceLog "Repository Root: $RepoRoot"
 Write-ServiceLog "Target: $ServerUrl (Mode: $EffectiveMode, Port: $EffectivePort)"
 Write-ServiceLog "=========================================="
@@ -107,7 +107,7 @@ function Start-WebServer {
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
     if ($EffectiveMode -eq "start") {
-        $launcherJs = Join-Path $RepoRoot "bin\omp-web.js"
+        $launcherJs = Join-Path $RepoRoot "bin\omp-loom.js"
         $psi.Arguments = "`"$launcherJs`" -p $EffectivePort -H $EffectiveHostname --no-open"
     } else {
         $nextBin = Join-Path $RepoRoot "node_modules\next\dist\bin\next"

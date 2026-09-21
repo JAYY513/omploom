@@ -1,6 +1,7 @@
 # Changelog
 
-All notable changes to **omp-web** (`@kahme247/ompweb`) are documented in this file.
+All notable changes to **omp-loom** (`omploom`) are documented in this file.
+Forked from [ompweb](https://github.com/kahme247/ompweb) at commit `a44946d` (post-v0.5.0 main).
 
 ---
 
@@ -15,7 +16,7 @@ All notable changes to **omp-web** (`@kahme247/ompweb`) are documented in this f
 
 ### Fixes & Improvements
 
-- Refresh the OMP version shown in new sessions after a CLI update without requiring an omp-web server restart. Reuse results while executable metadata is unchanged, with a five-minute fallback expiry for launchers. Keep the last known version visible between visits and distinguish initial loading from an unavailable runtime.
+- Refresh the OMP version shown in new sessions after a CLI update without requiring an omp-loom server restart. Reuse results while executable metadata is unchanged, with a five-minute fallback expiry for launchers. Keep the last known version visible between visits and distinguish initial loading from an unavailable runtime.
 - Restore copy-success feedback after React Strict Mode re-runs effect setup.
 - Keep sent-message copy, edit, and fork actions visible without hover or a reveal tap. Also keep file mention/download, Git open-file actions, and sidebar menus visible alongside their metadata; wrap message actions on narrow screens.
 - Expand complete tool inputs inline, including multiline code and edit patches, while keeping command previews compact and output visibility unchanged.
@@ -91,7 +92,7 @@ This release adds native autostart services, self-updates, a redesigned top bar,
 ### Highlights
 
 - **Native autostart**: Windows Task Scheduler service, system tray manager, desktop shortcuts, and macOS launchd installer.
-- **Self-updates**: Durable auto-update for OMP and omp-web with unified notifications.
+- **Self-updates**: Durable auto-update for OMP and omp-loom with unified notifications.
 - **Top bar redesign**: 3-zone layout with centered breadcrumb, provider cards, and zoom-aware menus.
 - **Usage analytics**: Dashboard with persistent SQLite store plus provider usage limits.
 - **Composer upgrades**: Tool preset picker, collapsible input, file search in the Explorer, and workspace-level OMP launch arguments.
@@ -109,7 +110,7 @@ This release adds workspace renaming and reordering, improved context compaction
 - **Queued prompt expansion**: Expand and review queued follow-up prompts before they are sent to the agent.
 - **Interactive questions in composer**: Respond to interactive questions from extensions directly inside the chat composer.
 - **Accurate live stats**: Live generation speed (tokens per second) is now pulled directly from the agent runtime, and cache hit rates are displayed in both the top bar and session info panel.
-- **Helpful network startup banner**: When starting omp-web, the terminal now displays clear, clickable local, LAN, and Tailscale network addresses.
+- **Helpful network startup banner**: When starting omp-loom, the terminal now displays clear, clickable local, LAN, and Tailscale network addresses.
 - **Complete Chinese settings localization**: Fully translated Settings, Models, MCP, and Agent configuration screens with smooth hydration.
 
 ### Fixes & Improvements
@@ -143,7 +144,7 @@ This release introduces an archive browser for past conversations, live tracking
 ### Fixes & Improvements
 
 - Fixed focus handling so closing the mobile sidebar never traps keyboard navigation.
-- Added web app manifest and icons for installing omp-web directly to your device home screen.
+- Added web app manifest and icons for installing omp-loom directly to your device home screen.
 - Server-side network requests now properly respect `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` settings.
 - MCP server credentials are now safely preserved when renaming an MCP server.
 - Fixed crashes caused by incomplete or manually edited session files.
@@ -384,7 +385,7 @@ This release improves Windows startup behavior and updates project documentation
 
 ## [v0.2.1] - 2026-08-10
 
-This is the initial public release of omp-web: a fast, modern browser interface for the omp coding agent.
+This is the initial public release of omp-loom: a fast, modern browser interface for the omp coding agent.
 
 ### Highlights
 
@@ -394,7 +395,7 @@ This is the initial public release of omp-web: a fast, modern browser interface 
 - **Image attachments**: Drag and drop, paste, or pick images to include in your prompts.
 - **Comprehensive configuration**: Easily configure providers, models, API keys, OAuth logins, tools, reasoning intensity, system prompts, and skills from the web UI.
 - **Productivity features**: Queue follow-ups, enable steering modes, play completion sounds, navigate with a minimap, and use on mobile devices.
-- **Global CLI**: Launch easily via `ompweb` on Windows, macOS, and Linux with customizable host and port options.
+- **Global CLI**: Launch easily via `omploom` on Windows, macOS, and Linux with customizable host and port options.
 - **Internationalization**: Full English, Chinese, and Japanese localization with built-in onboarding guides.
 
 ### Contributors

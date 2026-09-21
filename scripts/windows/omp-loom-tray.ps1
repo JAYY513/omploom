@@ -1,9 +1,9 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Native Windows System Tray Manager and Background Service for omp-web.
+    Native Windows System Tray Manager and Background Service for omp-loom.
 .DESCRIPTION
-    Runs omp-web in the background without a terminal window, monitors server health,
+    Runs omp-loom in the background without a terminal window, monitors server health,
     provides a system tray context menu, auto-restarts on crash, and manages Windows startup.
 .PARAMETER Port
     HTTP port to bind (default 30177 for start mode, 30178 for dev mode).
@@ -94,7 +94,7 @@ $ServerUrl = if ($EffectiveHostname -eq "0.0.0.0" -or $EffectiveHostname -eq "::
 # -----------------------------------------------------------------------------
 # 2. Single-Instance Enforcement via Mutex
 # -----------------------------------------------------------------------------
-$MutexName = "Local\OmpWebTray_Instance_Mutex"
+$MutexName = "Local\OmpLoomTray_Instance_Mutex"
 $createdNew = $false
 try {
     $script:AppMutex = New-Object System.Threading.Mutex($true, $MutexName, [ref]$createdNew)
@@ -120,8 +120,8 @@ $LogDir = Join-Path $env:USERPROFILE ".omp\agent\logs"
 if (!(Test-Path $LogDir)) {
     New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
 }
-$LogFile = Join-Path $LogDir "omp-web-service.log"
-$OldLogFile = Join-Path $LogDir "omp-web-service.old.log"
+$LogFile = Join-Path $LogDir "omp-loom-service.log"
+$OldLogFile = Join-Path $LogDir "omp-loom-service.old.log"
 
 # Rotate log file if > 5MB
 if (Test-Path $LogFile) {
@@ -147,7 +147,7 @@ function Write-ServiceLog([string]$message) {
 }
 
 Write-ServiceLog "=========================================="
-Write-ServiceLog "omp-web System Tray Manager v$PkgVersion starting"
+Write-ServiceLog "omp-loom System Tray Manager v$PkgVersion starting"
 Write-ServiceLog "Repository Root: $RepoRoot"
 Write-ServiceLog "Target: $ServerUrl (Mode: $EffectiveMode, Port: $EffectivePort)"
 Write-ServiceLog "=========================================="
@@ -155,7 +155,7 @@ Write-ServiceLog "=========================================="
 # -----------------------------------------------------------------------------
 # 4. Icon Loading & Rendering
 # -----------------------------------------------------------------------------
-$IcoPath = Join-Path $RepoRoot "public\omp-web.ico"
+$IcoPath = Join-Path $RepoRoot "public\omp-loom.ico"
 $PngPath = Join-Path $RepoRoot "public\icon.png"
 $script:AppIcon = $null
 
@@ -221,7 +221,7 @@ function Start-WebServer {
     $psi.RedirectStandardError = $true
 
     if ($EffectiveMode -eq "start") {
-        $launcherJs = Join-Path $RepoRoot "bin\omp-web.js"
+        $launcherJs = Join-Path $RepoRoot "bin\omp-loom.js"
         $psi.Arguments = "`"$launcherJs`" -p $EffectivePort -H $EffectiveHostname --no-open"
     } else {
         $nextBin = Join-Path $RepoRoot "node_modules\next\dist\bin\next"
@@ -313,7 +313,7 @@ function Test-ServerHealth {
         $req = [System.Net.WebRequest]::Create($probeUrl)
         $req.Method = "GET"
         $req.Timeout = 2000
-        $req.Headers.Add("User-Agent", "omp-web-tray-probe")
+        $req.Headers.Add("User-Agent", "omp-loom-tray-probe")
         $resp = $req.GetResponse()
         $resp.Close()
         return $true
@@ -329,13 +329,13 @@ function Test-ServerHealth {
 
 function Check-AutostartShortcut {
     $startupDir = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Startup)
-    $startupLnk = Join-Path $startupDir "omp-web-tray.lnk"
+    $startupLnk = Join-Path $startupDir "omp-loom-tray.lnk"
     return (Test-Path $startupLnk)
 }
 
 function Set-AutostartShortcut([bool]$enable) {
     $startupDir = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Startup)
-    $startupLnk = Join-Path $startupDir "omp-web-tray.lnk"
+    $startupLnk = Join-Path $startupDir "omp-loom-tray.lnk"
     $launchVbs = Join-Path $RepoRoot "scripts\windows\launch-tray.vbs"
 
     if ($enable) {
@@ -350,7 +350,7 @@ function Set-AutostartShortcut([bool]$enable) {
             if (Test-Path $IcoPath) {
                 $shortcut.IconLocation = "$IcoPath,0"
             }
-            $shortcut.Description = "omp-web Background Tray Service"
+            $shortcut.Description = "omp-loom Background Tray Service"
             $shortcut.Save()
             Write-ServiceLog "Enabled Windows startup shortcut: $startupLnk"
         } catch {
@@ -395,14 +395,14 @@ function Set-AutostartShortcut([bool]$enable) {
 # -----------------------------------------------------------------------------
 $script:NotifyIcon = New-Object System.Windows.Forms.NotifyIcon
 $script:NotifyIcon.Icon = $script:AppIcon
-$script:NotifyIcon.Text = "omp-web (Starting...)"
+$script:NotifyIcon.Text = "omp-loom (Starting...)"
 $script:NotifyIcon.Visible = $true
 
 $contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
 
 # Item 1: App Header
 $script:MenuItemHeader = New-Object System.Windows.Forms.ToolStripMenuItem
-$script:MenuItemHeader.Text = "omp-web (v$PkgVersion)"
+$script:MenuItemHeader.Text = "omp-loom (v$PkgVersion)"
 $script:MenuItemHeader.Font = New-Object System.Drawing.Font($script:MenuItemHeader.Font, [System.Drawing.FontStyle]::Bold)
 $script:MenuItemHeader.Enabled = $false
 $contextMenu.Items.Add($script:MenuItemHeader) | Out-Null
@@ -430,7 +430,7 @@ $script:MenuItemCopy.Text = "Copy Web URL"
 $script:MenuItemCopy.add_Click({
     try {
         [System.Windows.Forms.Clipboard]::SetText($ServerUrl)
-        $script:NotifyIcon.ShowBalloonTip(1500, "omp-web", "URL copied: $ServerUrl", [System.Windows.Forms.ToolTipIcon]::Info)
+        $script:NotifyIcon.ShowBalloonTip(1500, "omp-loom", "URL copied: $ServerUrl", [System.Windows.Forms.ToolTipIcon]::Info)
     } catch { }
 })
 $contextMenu.Items.Add($script:MenuItemCopy) | Out-Null
@@ -536,7 +536,7 @@ function Update-TrayUI {
     $script:MenuItemStatus.Text = "  Status: $statusText"
 
     # Limit tooltip text length (Windows NotifyIcon.Text max 63 characters)
-    $tipText = "omp-web ($statusText)"
+    $tipText = "omp-loom ($statusText)"
     if ($tipText.Length -gt 63) { $tipText = $tipText.Substring(0, 63) }
     $script:NotifyIcon.Text = $tipText
 
@@ -579,7 +579,7 @@ $script:Timer.add_Tick({
             if ($script:CrashTimestamps.Count -ge 3) {
                 $script:State = "Error"
                 Write-ServiceLog "Server crashed repeatedly (3 times in 60s). Auto-restart suspended."
-                $script:NotifyIcon.ShowBalloonTip(3000, "omp-web Service Error", "Server crashed repeatedly. Check logs for details.", [System.Windows.Forms.ToolTipIcon]::Error)
+                $script:NotifyIcon.ShowBalloonTip(3000, "omp-loom Service Error", "Server crashed repeatedly. Check logs for details.", [System.Windows.Forms.ToolTipIcon]::Error)
             } else {
                 Write-ServiceLog "Auto-restarting server (crash attempt $($script:CrashTimestamps.Count) of 3)..."
                 Start-WebServer

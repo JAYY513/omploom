@@ -1,26 +1,26 @@
-# ompweb
+# omploom
 
-[![npm version](https://img.shields.io/npm/v/@kahme247/ompweb.svg?logo=npm&color=e05d44)](https://www.npmjs.com/package/@kahme247/ompweb)
-[![node version](https://img.shields.io/node/v/@kahme247/ompweb.svg?logo=node.js&color=44cc11)](https://nodejs.org)
-[![license](https://img.shields.io/github/license/kahme247/ompweb.svg?color=44cc11)](./LICENSE)
-[![npm downloads](https://img.shields.io/npm/dm/@kahme247/ompweb.svg?color=44cc11)](https://www.npmjs.com/package/@kahme247/ompweb)
-[![GitHub stars](https://img.shields.io/github/stars/kahme247/ompweb.svg?logo=github)](https://github.com/kahme247/ompweb/stargazers)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/kahme247/ompweb/pulls)
+[![npm version](https://img.shields.io/npm/v/omploom.svg?logo=npm&color=e05d44)](https://www.npmjs.com/package/omploom)
+[![node version](https://img.shields.io/node/v/omploom.svg?logo=node.js&color=44cc11)](https://nodejs.org)
+[![license](https://img.shields.io/github/license/JAYY513/omploom.svg?color=44cc11)](./LICENSE)
+[![npm downloads](https://img.shields.io/npm/dm/omploom.svg?color=44cc11)](https://www.npmjs.com/package/omploom)
+[![GitHub stars](https://img.shields.io/github/stars/JAYY513/omploom.svg?logo=github)](https://github.com/JAYY513/omploom/stargazers)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/JAYY513/omploom/pulls)
 
 [English](./README.md) | [简体中文](./README.zh-CN.md) | [日本語](./README.ja.md)
+> **omploom** is a fork of [ompweb](https://github.com/kahme247/ompweb) (MIT): a web workbench for the [oh-my-pi (omp)](https://github.com/can1357/oh-my-pi) coding agent.
 
-Community: [Join the OMPWEB Discord](https://discord.gg/evqgGzRfM5)
 
 A clean, modern web UI for the [oh-my-pi (omp)](https://github.com/can1357/oh-my-pi) coding agent. It reads your local omp sessions and gives you a browser workspace to chat with the agent, browse projects, manage settings, and preview files.
 
-![ompweb — live session demo](docs/demo.gif)
+![omploom — live session demo](docs/demo.gif)
 
 <details>
 <summary>Screenshots (light / dark)</summary>
 
-![ompweb — light theme](docs/screenshot-light.png)
+![omploom — light theme](docs/screenshot-light.png)
 
-![ompweb — dark theme](docs/screenshot-dark.png)
+![omploom — dark theme](docs/screenshot-dark.png)
 
 </details>
 
@@ -34,19 +34,19 @@ A clean, modern web UI for the [oh-my-pi (omp)](https://github.com/can1357/oh-my
 **Run directly without installing:**
 
 ```bash
-npx @kahme247/ompweb@latest
+npx omploom@latest
 ```
 
 or
 ```bash
-nix run github:kahme247/ompweb
+nix run github:JAYY513/omploom
 ```
 
 **Or install globally:**
 
 ```bash
-npm install -g @kahme247/ompweb
-ompweb
+npm install -g omploom
+omploom
 ```
 
 Open [http://127.0.0.1:30177](http://127.0.0.1:30177) in your browser.
@@ -54,59 +54,59 @@ Open [http://127.0.0.1:30177](http://127.0.0.1:30177) in your browser.
 ### CLI Options
 
 ```bash
-ompweb --port 8080                         # Custom port
-ompweb --hostname 0.0.0.0                  # Listen on network
-ompweb --password "your-password"          # Enable password protection
-ompweb --no-open                           # Don't auto-open the browser
-ompweb --install-tray                      # Install Windows System Tray service & Desktop shortcuts
-ompweb --uninstall-tray                    # Uninstall Windows System Tray service & shortcuts
-ompweb --tray                              # Start background System Tray manager
-ompweb systemd install                     # Install Linux systemd user service
-ompweb --help                              # Show help
-ompweb --version                           # Show version
+omploom --port 8080                         # Custom port
+omploom --hostname 0.0.0.0                  # Listen on network
+omploom --password "your-password"          # Enable password protection
+omploom --no-open                           # Don't auto-open the browser
+omploom --install-tray                      # Install Windows System Tray service & Desktop shortcuts
+omploom --uninstall-tray                    # Uninstall Windows System Tray service & shortcuts
+omploom --tray                              # Start background System Tray manager
+omploom systemd install                     # Install Linux systemd user service
+omploom --help                              # Show help
+omploom --version                           # Show version
 ```
 
 ### Run as a Windows Service (System Tray)
 
-Install ompweb as a Windows background service with a system tray icon and autostart at login:
+Install omploom as a Windows background service with a system tray icon and autostart at login:
 
 ```bash
-ompweb --install-tray
+omploom --install-tray
 ```
 
 Manage it from **Settings → System & Updates → Windows Background Service**, or via CLI:
 
 ```bash
-ompweb --tray          # Start the tray manager
-ompweb --uninstall-tray
+omploom --tray          # Start the tray manager
+omploom --uninstall-tray
 ```
 
 Shortcuts are created on the Desktop and Start Menu. The service restarts automatically and shows the current port and status in the tray.
 
 ### Run as a macOS Service (launchd)
 
-Install ompweb as a launchd user agent that starts at login and restarts on crash:
+Install omploom as a launchd user agent that starts at login and restarts on crash:
 
 ```bash
-npx --yes @kahme247/ompweb@latest ompweb-launchd install
+npx --yes omploom@latest omploom-launchd install
 ```
 
 Manage it with:
 
 ```bash
-npx --yes @kahme247/ompweb@latest ompweb-launchd status      # Show service state
-npx --yes @kahme247/ompweb@latest ompweb-launchd uninstall   # Stop and remove
+npx --yes omploom@latest omploom-launchd status      # Show service state
+npx --yes omploom@latest omploom-launchd uninstall   # Stop and remove
 ```
 
-The service runs `npx --yes @kahme247/ompweb@latest`; pass a package spec to pin a
-version, e.g. `ompweb-launchd install @kahme247/ompweb@0.3.6`. All
+The service runs `npx --yes omploom@latest`; pass a package spec to pin a
+version, e.g. `omploom-launchd install omploom@0.3.6`. All
 [environment variables](#environment-variables) are read at install time and baked
 into the plist, plus `OMP_WEB_PKG` (package spec, same as the positional argument).
 As a service, the browser is **not** auto-opened by default — install with
 `OMP_WEB_NO_OPEN=0` to restore that.
 
 ```bash
-OMP_WEB_PASSWORD=secret npx --yes @kahme247/ompweb@latest ompweb-launchd install
+OMP_WEB_PASSWORD=secret npx --yes omploom@latest omploom-launchd install
 ```
 
 When binding to a non-loopback host, require authentication (`OMP_WEB_PASSWORD`
@@ -114,17 +114,17 @@ or equivalent access control) and HTTPS through a trusted reverse proxy or VPN.
 Never expose the unauthenticated web UI or send its password/session cookie over
 plaintext HTTP.
 
-Logs go to `~/Library/Logs/ompweb/ompweb.log` and the plist lives at
-`~/Library/LaunchAgents/com.kahme247.ompweb.plist` (mode 600; a configured
+Logs go to `~/Library/Logs/omploom/omploom.log` and the plist lives at
+`~/Library/LaunchAgents/com.jayy513.omploom.plist` (mode 600; a configured
 password is stored there in plain text).
 
 ### Run as a Linux Service (systemd)
 
-Install ompweb as a systemd **user** service that starts at login and restarts
+Install omploom as a systemd **user** service that starts at login and restarts
 on crash:
 
 ```bash
-npx --yes --package=@kahme247/ompweb@latest ompweb-systemd install
+npx --yes --package=omploom@latest omploom-systemd install
 ```
 The installer creates `~/.omp/agent/web-service.env` automatically with mode
 `600`; no manual file creation is required. The explicit `--package` form makes
@@ -135,28 +135,28 @@ installing:
 
 ```bash
 OMP_WEB_HOSTNAME=0.0.0.0 OMP_WEB_PASSWORD='change-me' \
-  npx --yes --package=@kahme247/ompweb@latest ompweb-systemd install
+  npx --yes --package=omploom@latest omploom-systemd install
 ```
 
 Manage it with:
 
 ```bash
-npx --yes --package=@kahme247/ompweb@latest ompweb-systemd status    # Show service state
-npx --yes --package=@kahme247/ompweb@latest ompweb-systemd restart   # start / stop / restart
-npx --yes --package=@kahme247/ompweb@latest ompweb-systemd uninstall # Stop and remove
+npx --yes --package=omploom@latest omploom-systemd status    # Show service state
+npx --yes --package=omploom@latest omploom-systemd restart   # start / stop / restart
+npx --yes --package=omploom@latest omploom-systemd uninstall # Stop and remove
 ```
 
-The service runs the locally installed `ompweb` binary resolved at install time
+The service runs the locally installed `omploom` binary resolved at install time
 (override with `OMP_WEB_SYSTEMD_BIN`). Runtime configuration lives in
 `~/.omp/agent/web-service.env` — the tray (or any editor) can change the port,
 hostname, and password there and just restart the service; no reinstall needed.
 Install-time [environment variables](#environment-variables) are baked into
 that file. As a service, the browser is **not** auto-opened by default. The
-unit lives at `~/.config/systemd/user/ompweb.service` and logs go to the
+unit lives at `~/.config/systemd/user/omploom.service` and logs go to the
 journal:
 
 ```bash
-journalctl --user -u ompweb -f
+journalctl --user -u omploom -f
 ```
 
 On a headless server, enable user lingering if the service must keep running
@@ -168,15 +168,15 @@ loginctl enable-linger "$USER"
 
 ### Linux System Tray (KDE Plasma and compatible)
 
-On Linux, `ompweb-tray` registers a StatusNotifierItem tray icon with a context
+On Linux, `omploom-tray` registers a StatusNotifierItem tray icon with a context
 menu: open the web UI, copy its URL, start/stop/restart the systemd service,
 view logs, expose the web UI to the network, change the port, set the web
 password, toggle autostart, and quit the tray.
 
 ```bash
-npx --yes @kahme247/ompweb@latest ompweb-tray --install      # Icons + autostart + start tray
-npx --yes @kahme247/ompweb@latest ompweb-tray --status       # Tray and service status
-npx --yes @kahme247/ompweb@latest ompweb-tray --uninstall    # Remove autostart, stop tray
+npx --yes omploom@latest omploom-tray --install      # Icons + autostart + start tray
+npx --yes omploom@latest omploom-tray --status       # Tray and service status
+npx --yes omploom@latest omploom-tray --uninstall    # Remove autostart, stop tray
 ```
 
 **Expose to Network** rebinds the service from `127.0.0.1` to `0.0.0.0` so the
@@ -188,7 +188,7 @@ non-loopback host, use HTTPS through a trusted reverse proxy or VPN for remote
 access.
 
 "Start with Plasma" in the tray menu toggles a desktop autostart entry at
-`~/.config/autostart/ompweb-tray.desktop`. Requires a running StatusNotifierItem
+`~/.config/autostart/omploom-tray.desktop`. Requires a running StatusNotifierItem
 host (KDE Plasma, and most Wayland/X11 desktops).
 
 ## Features
@@ -204,7 +204,7 @@ host (KDE Plasma, and most Wayland/X11 desktops).
 - **Git Worktree Support**: Create, switch, and manage Git worktrees directly from the sidebar; sessions and file roots stay grouped by project.
 - **Usage & Analytics**: Dashboard in **Settings → Usage** for tokens, costs, cache savings, and breakdowns by provider / model / day / project with SQLite persistence.
 - **Windows System Tray & Service**: Background service, tray icon, logon autostart, and Desktop/Start Menu shortcuts (Windows).
-- **macOS launchd Service**: LaunchAgent that starts at login, restarts on crash, and logs under `~/Library/Logs/ompweb`.
+- **macOS launchd Service**: LaunchAgent that starts at login, restarts on crash, and logs under `~/Library/Logs/omploom`.
 - **Linux systemd Service & Tray**: User service that starts at login and restarts on crash, plus a StatusNotifierItem tray icon with service controls (KDE Plasma and compatible desktops).
 - **Web-based Settings** (8 tabs): Interface & Behavior, Safety & Approvals, AI Model Defaults, API Keys & Providers, Usage, Agent & Intelligence (advisor, memory, compaction), Agents, Extensions & Tools (MCP, skills, plugins), System & Updates.
 - **Slash Commands & Shortcuts**: Quick prompts (`/plan`, `/review`, `/fix`, `/test`, etc.), `⌘K` / `Ctrl+K` palette, and model/reasoning cycling.
@@ -227,8 +227,8 @@ host (KDE Plasma, and most Wayland/X11 desktops).
 ## Development
 
 ```bash
-git clone https://github.com/kahme247/ompweb.git
-cd ompweb
+git clone https://github.com/JAYY513/omploom.git
+cd omploom
 npm install
 npm run dev
 ```

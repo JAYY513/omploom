@@ -4,11 +4,11 @@ import * as path from "path";
 
 /**
  * Node port of oh-my-pi's directory resolution (packages/utils/src/dirs.ts).
- * omp-web cannot import the Bun-only @oh-my-pi packages, so the layout rules
+ * omp-loom cannot import the Bun-only @oh-my-pi packages, so the layout rules
  * are replicated here. Covered: PI_CODING_AGENT_DIR override, PI_CONFIG_DIR
  * rename, and the XDG data layout (used only when $XDG_DATA_HOME/omp already
  * exists, mirroring omp's opt-in migration). Named profiles
- * (OMP_PROFILE/PI_PROFILE) are intentionally unsupported: omp-web always
+ * (OMP_PROFILE/PI_PROFILE) are intentionally unsupported: omp-loom always
  * resolves the default profile location.
  */
 
@@ -166,5 +166,5 @@ export function getProjectAgentsDir(cwd: string): string {
 
 /** Cache directory for unpacked bundled agents (temp). */
 export function getAgentsBundledCacheDir(): string {
-  return path.join(tmpdir(), "omp-web-bundled-agents");
+  return path.join(tmpdir(), "omp-loom-bundled-agents");
 }

@@ -80,9 +80,9 @@ const RightPanel = dynamic(() => import("./RightPanel").then((m) => m.RightPanel
   loading: () => <PanelLoadingFallback />,
 });
 
-const TOOL_CALLS_COLLAPSED_STORAGE_KEY = "omp-web:tool-calls-collapsed";
-const PROVIDER_USAGE_VISIBLE_STORAGE_KEY = "omp-web:provider-usage-visible";
-const NATIVE_SELECT_ALL_STORAGE_KEY = "omp-web:scope-native-select-all";
+const TOOL_CALLS_COLLAPSED_STORAGE_KEY = "omp-loom:tool-calls-collapsed";
+const PROVIDER_USAGE_VISIBLE_STORAGE_KEY = "omp-loom:provider-usage-visible";
+const NATIVE_SELECT_ALL_STORAGE_KEY = "omp-loom:scope-native-select-all";
 
 const CommandPalette = dynamic(() => import("./CommandPalette").then((m) => m.CommandPalette), {
   ssr: false,
@@ -344,7 +344,7 @@ export function AppShell() {
           setAppUpdateDialogOpen(true);
         }
       } else {
-        const cmd = data.updateCommand || "npm install -g @kahme247/ompweb";
+        const cmd = data.updateCommand || "npm install -g omploom";
         const version = data.availableVersion;
         if (readDismissedVersion(DISMISSED_APP_UPDATE_KEY) === version) return data;
         toast.info(
@@ -1470,7 +1470,7 @@ export function AppShell() {
   }, [sidebarHistory.exitNeedsNativeBack, t]);
 
   const activeCwdName = activeCwd ? getFileName(activeCwd) || activeCwd : null;
-  const windowTitle = activeCwdName ? `${activeCwdName} - omp web` : "omp web";
+  const windowTitle = activeCwdName ? `${activeCwdName} - omp loom` : "omp loom";
 
   useEffect(() => {
     const syncWindowTitle = () => {

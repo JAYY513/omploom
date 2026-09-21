@@ -11,7 +11,7 @@ function isEnabled(value) {
 
 
 function printHelp() {
-  console.log(`Usage: ompweb [options]
+  console.log(`Usage: omploom [options]
 
 Options:
   -p, --port <port>        Server port (default 30177, env PORT)
@@ -24,11 +24,11 @@ Options:
   -h, --help               Show this help
       --version            Show version
 Password:
-  ompweb --password "a-long-random-password"
+  omploom --password "a-long-random-password"
   # env-variable forms (POSIX, PowerShell, CMD handled uniformly)
-  OMP_WEB_PASSWORD="secret" ompweb
-  $env:OMP_WEB_PASSWORD="secret"; ompweb   # PowerShell
-  set OMP_WEB_PASSWORD=secret&& ompweb     # CMD
+  OMP_WEB_PASSWORD="secret" omploom
+  $env:OMP_WEB_PASSWORD="secret"; omploom   # PowerShell
+  set OMP_WEB_PASSWORD=secret&& omploom     # CMD
 
 Security: use HTTPS via a trusted reverse proxy or VPN when binding to a
 non-loopback hostname, so the password and session cookie stay private.`);
@@ -71,7 +71,7 @@ function parseLaunchOptions(args = process.argv.slice(2), env = process.env) {
       version: true,
     };
   }
-  // Expose help flag without exiting here — caller (bin/omp-web.js) decides
+  // Expose help flag without exiting here — caller (bin/omp-loom.js) decides
   // whether to exit, keeping parseLaunchOptions testable. Print here so
   // --help works even when the caller is a test.
   if (cliArgs.help) {

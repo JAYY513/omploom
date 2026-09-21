@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 "use strict";
 
-// Install ompweb as a macOS launchd user agent (starts at login, restarts on crash).
+// Install omploom as a macOS launchd user agent (starts at login, restarts on crash).
 //
-// Usage (installed as the `ompweb-launchd` bin, or run via npx / node directly):
-//   ompweb-launchd [install [package-spec]|uninstall|status]
-//   npx -p @kahme247/ompweb@latest ompweb-launchd install
+// Usage (installed as the `omploom-launchd` bin, or run via npx / node directly):
+//   omploom-launchd [install [package-spec]|uninstall|status]
+//   npx -p omploom@latest omploom-launchd install
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { spawnSync } = require("node:child_process");
@@ -16,10 +16,10 @@ const os = require("node:os");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const path = require("node:path");
 
-const LABEL = "com.kahme247.ompweb";
+const LABEL = "com.jayy513.omploom";
 const HOME = os.homedir();
 const PLIST = path.join(HOME, "Library", "LaunchAgents", `${LABEL}.plist`);
-const LOG_DIR = path.join(HOME, "Library", "Logs", "ompweb");
+const LOG_DIR = path.join(HOME, "Library", "Logs", "omploom");
 const DOMAIN = `gui/${process.getuid?.() ?? 0}`;
 
 function fail(message) {
@@ -72,7 +72,7 @@ function install(pkgArg) {
     console.warn("warning: omp binary not found; live-agent features will be unavailable (set OMP_WEB_OMP_BIN)");
   }
 
-  const pkg = pkgArg ?? process.env.OMP_WEB_PKG ?? "@kahme247/ompweb@latest";
+  const pkg = pkgArg ?? process.env.OMP_WEB_PKG ?? "omploom@latest";
   const port = process.env.PORT ?? "30177";
   const hostname = process.env.OMP_WEB_HOSTNAME ?? "127.0.0.1";
   const noOpen = process.env.OMP_WEB_NO_OPEN ?? "1";
@@ -122,8 +122,8 @@ ${envXml}
   <key>WorkingDirectory</key><string>${xmlEscape(HOME)}</string>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>${xmlEscape(path.join(LOG_DIR, "ompweb.log"))}</string>
-  <key>StandardErrorPath</key><string>${xmlEscape(path.join(LOG_DIR, "ompweb.err.log"))}</string>
+  <key>StandardOutPath</key><string>${xmlEscape(path.join(LOG_DIR, "omploom.log"))}</string>
+  <key>StandardErrorPath</key><string>${xmlEscape(path.join(LOG_DIR, "omploom.err.log"))}</string>
 </dict>
 </plist>
 `;
@@ -139,7 +139,7 @@ ${envXml}
   console.log(`installed: ${PLIST}`);
   console.log(`package:   ${pkg} (via npx --yes)`);
   console.log(`url:       http://${hostname}:${port}`);
-  console.log(`logs:      ${path.join(LOG_DIR, "ompweb.log")}`);
+  console.log(`logs:      ${path.join(LOG_DIR, "omploom.log")}`);
   if (password) console.log("note:      password is stored in plain text in the plist (mode 600)");
 }
 
@@ -167,6 +167,6 @@ if (command === "install") install(process.argv[3]);
 else if (command === "uninstall") uninstall();
 else if (command === "status") status();
 else {
-  console.error("usage: ompweb-launchd [install [package-spec]|uninstall|status]");
+  console.error("usage: omploom-launchd [install [package-spec]|uninstall|status]");
   process.exit(2);
 }

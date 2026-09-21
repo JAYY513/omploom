@@ -2,7 +2,7 @@
  * Web-native slash commands (prompt-composing).
  *
  * omp's own `/goal`, `/plan`, `/vibe`, ... are TUI-only builtins (`handleTui`);
- * the RPC prompt path (which omp-web uses) forwards them as literal user text
+ * the RPC prompt path (which omp-loom uses) forwards them as literal user text
  * instead of executing them. These client-side commands fill that gap: the
  * palette advertises them and the client built-in dispatcher expands them into
  * effective prompts sent through the normal prompt pipeline, so the agent

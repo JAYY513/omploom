@@ -1,6 +1,6 @@
 "use strict";
 
-// Shared systemd EnvironmentFile helpers for the ompweb Linux service.
+// Shared systemd EnvironmentFile helpers for the omploom Linux service.
 // Runtime settings live in ~/.omp/agent/web-service.env so changing the
 // port, bind address, or password does not require regenerating the unit.
 
