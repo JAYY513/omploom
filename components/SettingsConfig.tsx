@@ -5,6 +5,7 @@ import { getSubmitDuringRunBehavior, setSubmitDuringRunBehavior, type SubmitDuri
 import dynamic from "next/dynamic";
 import { ArrowLeft, Copy, Download, ExternalLink, RefreshCw, RotateCcw, Search, Monitor, Play, Square, Trash2, X } from "lucide-react";
 import { Alert } from "@/components/ui/field";
+import { GlideSelect } from "@/components/ui/glide-select";
 import { toast } from "@/components/ui/toast";
 import { useI18n } from "@/lib/i18n";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -58,30 +59,6 @@ type NativeSettings = {
   mcp?: { enableProjectConfig?: boolean; renderMarkdownResults?: boolean; notifications?: boolean; notificationDebounceMs?: number };
   retry?: { enabled?: boolean; maxRetries?: number; modelFallback?: boolean };
 };
-
-const nativeSelectStyle = {
-  minHeight: 32,
-  padding: "4px 28px 4px 10px",
-  border: "1px solid var(--border)",
-  borderRadius: "var(--radius-control)",
-  background: "var(--bg)",
-  color: "var(--text)",
-  fontSize: 12,
-  cursor: "pointer",
-  appearance: "none" as const,
-  WebkitAppearance: "none" as const,
-  MozAppearance: "none" as const,
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-  backgroundRepeat: "no-repeat" as const,
-  backgroundPosition: "right 8px center" as const,
-  outline: "none",
-  colorScheme: "dark light",
-} as const;
-
-const nativeOptionStyle = {
-  background: "var(--bg-panel)",
-  color: "var(--text)",
-} as const;
 
 const chipStyle = {
   fontSize: 10,
@@ -841,60 +818,37 @@ export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCal
                     description={ttsSupported ? (t("settingsConfig.ttsVoiceDesc") || "Select the browser voice for text-to-speech reading.") : `${t("settingsConfig.ttsVoiceDesc") || "Select the browser voice for text-to-speech reading."} (${t("settingsConfig.ttsNotSupported") || "Not supported in this browser"})`}
                     scope="UI"
                   >
-                    <select
-                      style={nativeSelectStyle}
+                    <GlideSelect
                       value={ttsVoiceURI || ""}
+                      onChange={(v) => setTtsVoiceURI(v || null)}
+                      options={[{ value: "", label: t("settingsConfig.defaultVoice") || "Default system voice" }, ...ttsVoices.map((v) => ({ value: v.voiceURI, label: `${v.name} (${v.lang})` }))]}
                       disabled={!ttsSupported || ttsVoices.length === 0}
-                      onChange={(e) => setTtsVoiceURI(e.target.value || null)}
-                    >
-                      <option value="">{t("settingsConfig.defaultVoice") || "Default system voice"}</option>
-                      {ttsVoices.map((v) => (
-                        <option key={v.voiceURI} value={v.voiceURI}>
-                          {v.name} ({v.lang})
-                        </option>
-                      ))}
-                    </select>
+                      menuWidth={260}
+                    />
                   </NativeSetting>
                   <NativeSetting searchId="provider-usage" label={t("settingsConfig.providerUsage")} description={t("settingsConfig.providerUsageDesc")} scope="UI">
                     <ToggleSwitch checked={providerUsageVisible} onChange={onProviderUsageVisibleChange} />
                   </NativeSetting>
                   <NativeSetting searchId="chat-font-size" label={t("settingsConfig.chatFontSize")} description={t("settingsConfig.chatFontSizeDesc")} scope="UI">
-                    <select
-                      style={nativeSelectStyle}
+                    <GlideSelect
                       value={fontSize}
-                      onChange={(event) => setFontSize(event.target.value as FontSizePreference)}
-                    >
-                      <option value="sm" style={nativeOptionStyle}>{t("settingsConfig.fontSizeSmall")}</option>
-                      <option value="md" style={nativeOptionStyle}>{t("settingsConfig.fontSizeMedium")}</option>
-                      <option value="lg" style={nativeOptionStyle}>{t("settingsConfig.fontSizeLarge")}</option>
-                      <option value="xl" style={nativeOptionStyle}>{t("settingsConfig.fontSizeXLarge")}</option>
-                    </select>
+                      onChange={(v) => setFontSize(v as FontSizePreference)}
+                      options={[{ value: "sm", label: t("settingsConfig.fontSizeSmall") }, { value: "md", label: t("settingsConfig.fontSizeMedium") }, { value: "lg", label: t("settingsConfig.fontSizeLarge") }, { value: "xl", label: t("settingsConfig.fontSizeXLarge") }]}
+                    />
                   </NativeSetting>
                   <NativeSetting searchId="ui-scale" label={t("settingsConfig.uiScale")} description={t("settingsConfig.uiScaleDesc")} scope="UI">
-                    <select
-                      style={nativeSelectStyle}
+                    <GlideSelect
                       value={uiScale}
-                      onChange={(event) => setUiScale(event.target.value as UiScalePreference)}
-                    >
-                      <option value="compact" style={nativeOptionStyle}>{t("settingsConfig.uiScaleCompact")}</option>
-                      <option value="standard" style={nativeOptionStyle}>{t("settingsConfig.uiScaleStandard")}</option>
-                      <option value="comfortable" style={nativeOptionStyle}>{t("settingsConfig.uiScaleComfortable")}</option>
-                      <option value="large" style={nativeOptionStyle}>{t("settingsConfig.uiScaleLarge")}</option>
-                    </select>
+                      onChange={(v) => setUiScale(v as UiScalePreference)}
+                      options={[{ value: "compact", label: t("settingsConfig.uiScaleCompact") }, { value: "standard", label: t("settingsConfig.uiScaleStandard") }, { value: "comfortable", label: t("settingsConfig.uiScaleComfortable") }, { value: "large", label: t("settingsConfig.uiScaleLarge") }]}
+                    />
                   </NativeSetting>
                   <NativeSetting searchId="message-during-active-run" label={t("settingsConfig.messageDuringActiveRun")} description={t("settingsConfig.messageDuringActiveRunDesc")} scope="UI">
-                    <select
-                      style={nativeSelectStyle}
+                    <GlideSelect
                       value={submitBehavior}
-                      onChange={(event) => {
-                        const next = event.target.value as SubmitDuringRunBehavior;
-                        setSubmitDuringRunBehavior(next);
-                        setSubmitBehavior(next);
-                      }}
-                    >
-                      <option value="steer" style={nativeOptionStyle}>{t("settingsConfig.steerCurrentRun")}</option>
-                      <option value="queue" style={nativeOptionStyle}>{t("settingsConfig.queueFollowUp")}</option>
-                    </select>
+                      onChange={(v) => { const next = v as SubmitDuringRunBehavior; setSubmitDuringRunBehavior(next); setSubmitBehavior(next); }}
+                      options={[{ value: "steer", label: t("settingsConfig.steerCurrentRun") }, { value: "queue", label: t("settingsConfig.queueFollowUp") }]}
+                    />
                   </NativeSetting>
                 </div>
               </div>
@@ -909,36 +863,25 @@ export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCal
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
                   <NativeSetting searchId="approval-mode" label={t("settingsConfig.approvalMode")} description={t("settingsConfig.approvalModeDesc")} scope="Native OMP">
-                    <select
-                      style={nativeSelectStyle}
+                    <GlideSelect
                       value={nativeSettings?.tools?.approvalMode ?? "yolo"}
-                      onChange={(event) => patchSection("tools", { approvalMode: event.target.value as "always-ask" | "write" | "yolo" })}
-                    >
-                      <option value="always-ask" style={nativeOptionStyle}>{t("settingsConfig.alwaysAsk")}</option>
-                      <option value="write" style={nativeOptionStyle}>{t("settingsConfig.allowWrites")}</option>
-                      <option value="yolo" style={nativeOptionStyle}>{t("settingsConfig.autoApproveYolo")}</option>
-                    </select>
+                      onChange={(v) => patchSection("tools", { approvalMode: v as "always-ask" | "write" | "yolo" })}
+                      options={[{ value: "always-ask", label: t("settingsConfig.alwaysAsk") }, { value: "write", label: t("settingsConfig.allowWrites") }, { value: "yolo", label: t("settingsConfig.autoApproveYolo") }]}
+                    />
                   </NativeSetting>
                   <NativeSetting searchId="bash-override" label={t("settingsConfig.bashOverride")} description={t("settingsConfig.bashOverrideDesc")} scope="Native OMP">
-                    <select
-                      style={nativeSelectStyle}
+                    <GlideSelect
                       value={nativeSettings?.tools?.approval?.bash ?? "prompt"}
-                      onChange={(event) => patchApproval({ bash: event.target.value as "allow" | "prompt" | "deny" })}
-                    >
-                      <option value="allow" style={nativeOptionStyle}>{t("settingsConfig.allow")}</option>
-                      <option value="prompt" style={nativeOptionStyle}>{t("settingsConfig.alwaysAsk")}</option>
-                      <option value="deny" style={nativeOptionStyle}>{t("settingsConfig.deny")}</option>
-                    </select>
+                      onChange={(v) => patchApproval({ bash: v as "allow" | "prompt" | "deny" })}
+                      options={[{ value: "allow", label: t("settingsConfig.allow") }, { value: "prompt", label: t("settingsConfig.alwaysAsk") }, { value: "deny", label: t("settingsConfig.deny") }]}
+                    />
                   </NativeSetting>
                   <NativeSetting searchId="extension-tool-requests" label={t("settingsConfig.extensionToolRequests")} description={t("settingsConfig.extensionToolRequestsDesc")} scope="Native OMP">
-                    <select
-                      style={nativeSelectStyle}
+                    <GlideSelect
                       value={nativeSettings?.tools?.approval?.extension ?? "prompt"}
-                      onChange={(event) => patchApproval({ extension: event.target.value as "allow" | "prompt" })}
-                    >
-                      <option value="prompt" style={nativeOptionStyle}>{t("settingsConfig.askEveryTime")}</option>
-                      <option value="allow" style={nativeOptionStyle}>{t("settingsConfig.autoApprove")}</option>
-                    </select>
+                      onChange={(v) => patchApproval({ extension: v as "allow" | "prompt" })}
+                      options={[{ value: "prompt", label: t("settingsConfig.askEveryTime") }, { value: "allow", label: t("settingsConfig.autoApprove") }]}
+                    />
                   </NativeSetting>
                 </div>
               </div>
@@ -953,38 +896,25 @@ export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCal
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
                   <NativeSetting searchId="reasoning" label={t("settingsConfig.reasoning")} description={t("settingsConfig.reasoningDesc")} scope="Native OMP">
-                    <select
-                      style={nativeSelectStyle}
+                    <GlideSelect
                       value={nativeSettings?.defaultThinkingLevel ?? "high"}
-                      onChange={(e) => patchSettings({ defaultThinkingLevel: e.target.value as NativeSettings["defaultThinkingLevel"] })}
-                    >
-                      {["auto", "minimal", "low", "medium", "high", "xhigh", "max"].map((l) => (
-                        <option key={l} value={l} style={nativeOptionStyle}>{l}</option>
-                      ))}
-                    </select>
+                      onChange={(v) => patchSettings({ defaultThinkingLevel: v as NativeSettings["defaultThinkingLevel"] })}
+                      options={["auto", "minimal", "low", "medium", "high", "xhigh", "max"]}
+                    />
                   </NativeSetting>
                   <NativeSetting searchId="verbosity" label={t("settingsConfig.verbosity")} description={t("settingsConfig.verbosityDesc")} scope="Native OMP">
-                    <select
-                      style={nativeSelectStyle}
+                    <GlideSelect
                       value={nativeSettings?.textVerbosity ?? "medium"}
-                      onChange={(e) => patchSettings({ textVerbosity: e.target.value as NativeSettings["textVerbosity"] })}
-                    >
-                      <option value="low" style={nativeOptionStyle}>{t("settingsConfig.verbosityLow")}</option>
-                      <option value="medium" style={nativeOptionStyle}>{t("settingsConfig.verbosityMedium")}</option>
-                      <option value="high" style={nativeOptionStyle}>{t("settingsConfig.verbosityHigh")}</option>
-                    </select>
+                      onChange={(v) => patchSettings({ textVerbosity: v as NativeSettings["textVerbosity"] })}
+                      options={[{ value: "low", label: t("settingsConfig.verbosityLow") }, { value: "medium", label: t("settingsConfig.verbosityMedium") }, { value: "high", label: t("settingsConfig.verbosityHigh") }]}
+                    />
                   </NativeSetting>
                   <NativeSetting searchId="personality" label={t("settingsConfig.personality")} description={t("settingsConfig.personalityDesc")} scope="Native OMP">
-                    <select
-                      style={nativeSelectStyle}
+                    <GlideSelect
                       value={nativeSettings?.personality ?? "default"}
-                      onChange={(e) => patchSettings({ personality: e.target.value as NativeSettings["personality"] })}
-                    >
-                      <option value="default" style={nativeOptionStyle}>{t("settingsConfig.personalityDefault")}</option>
-                      <option value="friendly" style={nativeOptionStyle}>{t("settingsConfig.personalityFriendly")}</option>
-                      <option value="pragmatic" style={nativeOptionStyle}>{t("settingsConfig.personalityPragmatic")}</option>
-                      <option value="none" style={nativeOptionStyle}>{t("settingsConfig.personalityNone")}</option>
-                    </select>
+                      onChange={(v) => patchSettings({ personality: v as NativeSettings["personality"] })}
+                      options={[{ value: "default", label: t("settingsConfig.personalityDefault") }, { value: "friendly", label: t("settingsConfig.personalityFriendly") }, { value: "pragmatic", label: t("settingsConfig.personalityPragmatic") }, { value: "none", label: t("settingsConfig.personalityNone") }]}
+                    />
                   </NativeSetting>
                   <NativeSetting searchId="thinking-blocks" label={t("settingsConfig.thinkingBlocks")} description={t("settingsConfig.thinkingBlocksDesc")} scope="Native OMP">
                     <ToggleSwitch
@@ -1058,17 +988,11 @@ export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCal
                       />
                     </NativeSetting>
                     <NativeSetting searchId="maintenance-strategy" label={t("settingsConfig.maintenanceStrategy")} description={t("settingsConfig.maintenanceStrategyDesc")} scope="Native OMP">
-                      <select
-                        style={nativeSelectStyle}
+                      <GlideSelect
                         value={nativeSettings?.compaction?.strategy ?? "snapcompact"}
-                        onChange={(e) => patchSection("compaction", { strategy: e.target.value as NonNullable<NativeSettings["compaction"]>["strategy"] })}
-                      >
-                        <option value="snapcompact" style={nativeOptionStyle}>{t("settingsConfig.strategySnapcompact")}</option>
-                        <option value="handoff" style={nativeOptionStyle}>{t("settingsConfig.strategyHandoff")}</option>
-                        <option value="context-full" style={nativeOptionStyle}>{t("settingsConfig.strategyContextFull")}</option>
-                        <option value="shake" style={nativeOptionStyle}>{t("settingsConfig.strategyShake")}</option>
-                        <option value="off" style={nativeOptionStyle}>{t("settingsConfig.strategyOff")}</option>
-                      </select>
+                        onChange={(v) => patchSection("compaction", { strategy: v as NonNullable<NativeSettings["compaction"]>["strategy"] })}
+                        options={[{ value: "snapcompact", label: t("settingsConfig.strategySnapcompact") }, { value: "handoff", label: t("settingsConfig.strategyHandoff") }, { value: "context-full", label: t("settingsConfig.strategyContextFull") }, { value: "shake", label: t("settingsConfig.strategyShake") }, { value: "off", label: t("settingsConfig.strategyOff") }]}
+                      />
                     </NativeSetting>
                     <NativeSetting searchId="compact-mid-turn" label={t("settingsConfig.compactMidTurn")} description={t("settingsConfig.compactMidTurnDesc")} scope="Native OMP">
                       <ToggleSwitch
@@ -1085,16 +1009,11 @@ export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCal
                   <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 12.5, lineHeight: 1.45 }}>{t("settingsConfig.memoryAutoLearnDesc")}</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4, width: "100%" }}>
                     <NativeSetting searchId="memory-backend" label={t("settingsConfig.memoryBackend")} description={t("settingsConfig.memoryBackendDesc")} scope="Native OMP">
-                      <select
-                        style={nativeSelectStyle}
+                      <GlideSelect
                         value={nativeSettings?.memory?.backend ?? "mnemopi"}
-                        onChange={(e) => patchSection("memory", { backend: e.target.value as NonNullable<NativeSettings["memory"]>["backend"] })}
-                      >
-                        <option value="off" style={nativeOptionStyle}>{t("settingsConfig.memoryBackendOff")}</option>
-                        <option value="local" style={nativeOptionStyle}>{t("settingsConfig.memoryBackendLocal")}</option>
-                        <option value="mnemopi" style={nativeOptionStyle}>{t("settingsConfig.memoryBackendMnemopi")}</option>
-                        <option value="hindsight" style={nativeOptionStyle}>{t("settingsConfig.memoryBackendHindsight")}</option>
-                      </select>
+                        onChange={(v) => patchSection("memory", { backend: v as NonNullable<NativeSettings["memory"]>["backend"] })}
+                        options={[{ value: "off", label: t("settingsConfig.memoryBackendOff") }, { value: "local", label: t("settingsConfig.memoryBackendLocal") }, { value: "mnemopi", label: t("settingsConfig.memoryBackendMnemopi") }, { value: "hindsight", label: t("settingsConfig.memoryBackendHindsight") }]}
+                      />
                     </NativeSetting>
                     <NativeSetting searchId="enable-auto-learn" label={t("settingsConfig.enableAutoLearn")} description={t("settingsConfig.enableAutoLearnDesc")} scope="Native OMP">
                       <ToggleSwitch
@@ -1109,15 +1028,11 @@ export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCal
                       />
                     </NativeSetting>
                     <NativeSetting searchId="memory-scope" label={t("settingsConfig.memoryScope")} description={t("settingsConfig.memoryScopeDesc")} scope="Native OMP">
-                      <select
-                        style={nativeSelectStyle}
+                      <GlideSelect
                         value={nativeSettings?.mnemopi?.scoping ?? "per-project"}
-                        onChange={(e) => patchSection("mnemopi", { scoping: e.target.value as NonNullable<NativeSettings["mnemopi"]>["scoping"] })}
-                      >
-                        <option value="per-project" style={nativeOptionStyle}>{t("settingsConfig.memoryScopePerProject")}</option>
-                        <option value="per-project-tagged" style={nativeOptionStyle}>{t("settingsConfig.memoryScopePerProjectTagged")}</option>
-                        <option value="global" style={nativeOptionStyle}>{t("settingsConfig.memoryScopeGlobal")}</option>
-                      </select>
+                        onChange={(v) => patchSection("mnemopi", { scoping: v as NonNullable<NativeSettings["mnemopi"]>["scoping"] })}
+                        options={[{ value: "per-project", label: t("settingsConfig.memoryScopePerProject") }, { value: "per-project-tagged", label: t("settingsConfig.memoryScopePerProjectTagged") }, { value: "global", label: t("settingsConfig.memoryScopeGlobal") }]}
+                      />
                     </NativeSetting>
                     <NativeSetting searchId="recall-on-session-start" label={t("settingsConfig.recallOnSessionStart")} description={t("settingsConfig.recallOnSessionStartDesc")} scope="Native OMP">
                       <ToggleSwitch
@@ -1146,15 +1061,11 @@ export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCal
                       />
                     </NativeSetting>
                     <NativeSetting searchId="max-attempts" label={t("settingsConfig.maxAttempts")} description={t("settingsConfig.maxAttemptsDesc")} scope="Native OMP">
-                      <select
-                        style={nativeSelectStyle}
+                      <GlideSelect
                         value={String(nativeSettings?.retry?.maxRetries ?? 2)}
-                        onChange={(e) => patchSection("retry", { maxRetries: Number(e.target.value) })}
-                      >
-                        {[0, 1, 2, 3, 4, 5].map((n) => (
-                          <option key={n} value={n} style={nativeOptionStyle}>{n}</option>
-                        ))}
-                      </select>
+                        onChange={(v) => patchSection("retry", { maxRetries: Number(v) })}
+                        options={["0", "1", "2", "3", "4", "5"]}
+                      />
                     </NativeSetting>
                     <NativeSetting searchId="model-fallback" label={t("settingsConfig.modelFallback")} description={t("settingsConfig.modelFallbackDesc")} scope="Native OMP">
                       <ToggleSwitch

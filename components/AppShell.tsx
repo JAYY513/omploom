@@ -17,6 +17,7 @@ import { BranchNavigator } from "./BranchNavigator";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ShinyText } from "./effects/ShinyText";
 import { Check, Ellipsis, Folder, History, Menu, PanelLeft, Terminal, Wand2, Zap } from "lucide-react";
+import { GlideSelect } from "./ui/glide-select";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { translate, useI18n } from "@/lib/i18n";
 import { formatApiError } from "@/lib/i18n/api-error";
@@ -2056,12 +2057,12 @@ export function AppShell() {
                   <label htmlFor="new-session-workspace" style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>
                     {t("settingsConfig.chipWorkspace")}
                   </label>
-                  <select
+                  <GlideSelect
+                    size="lg"
                     id="new-session-workspace"
                     aria-describedby="new-session-workspace-path"
                     value={effectiveNewSessionCwd}
-                    onChange={(event) => {
-                      const cwd = event.target.value;
+                    onChange={(cwd) => {
                       if (!cwd) {
                         setAddProjectOpen(true);
                         return;
@@ -2071,23 +2072,14 @@ export function AppShell() {
                       setActiveCwd(cwd);
                       handleNewSession("", cwd);
                     }}
-                    style={{ width: "100%", minWidth: 0, minHeight: 44, padding: "8px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-control)", background: "var(--bg-panel)", color: "var(--text)", fontSize: 16 }}
-                  >
-                    {!workspaceOptions.projects.some((project) => comparableProjectPath(project.path) === comparableProjectPath(newSessionProject)) && (
-                      <option value={effectiveNewSessionCwd}>{projectLabel(effectiveNewSessionCwd)}</option>
-                    )}
-                    {workspaceOptions.projects.map((project) => {
+                    style={{ width: "100%", minWidth: 0 }}
+                    options={[...(!workspaceOptions.projects.some((project) => comparableProjectPath(project.path) === comparableProjectPath(newSessionProject)) ? [{ value: effectiveNewSessionCwd, label: projectLabel(effectiveNewSessionCwd) }] : []), ...workspaceOptions.projects.map((project) => {
                       const current = comparableProjectPath(project.path) === comparableProjectPath(newSessionProject);
                       const label = project.alias ?? projectLabel(project.path);
                       const duplicate = workspaceOptions.projects.some((other) => other.path !== project.path && (other.alias ?? projectLabel(other.path)) === label);
-                      return (
-                        <option key={project.path} value={current ? effectiveNewSessionCwd : project.path}>
-                          {duplicate ? `${label} — ${project.path}` : label}
-                        </option>
-                      );
-                    })}
-                    <option value="">+ {t("projects.add")}</option>
-                  </select>
+                      return { value: current ? effectiveNewSessionCwd : project.path, label: duplicate ? `${label} — ${project.path}` : label };
+                    }), { value: "", label: `+ ${t("projects.add")}` }]}
+                  />
                   <div id="new-session-workspace-path" style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)", overflowWrap: "anywhere" }}>
                     {effectiveNewSessionCwd}
                   </div>

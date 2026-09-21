@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Bot, Check, Copy, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { Alert } from "@/components/ui/field";
+import { GlideSelect } from "@/components/ui/glide-select";
 import { toast } from "@/components/ui/toast";
 import { useI18n } from "@/lib/i18n";
 
@@ -30,7 +31,6 @@ type AgentsResponse = {
 
 const inputStyle = { width: "100%", padding: "7px 9px", border: "1px solid var(--border)", borderRadius: "var(--radius-control)", background: "var(--bg)", color: "var(--text)", font: "12px var(--font-mono)" } as const;
 const textareaStyle = { width: "100%", padding: "7px 9px", border: "1px solid var(--border)", borderRadius: "var(--radius-control)", background: "var(--bg)", color: "var(--text)", font: "12px var(--font-mono)", lineHeight: "1.45" } as const;
-const nativeSelectStyle = { minHeight: 32, padding: "4px 28px 4px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-control)", background: "var(--bg)", color: "var(--text)", fontSize: 12 } as const;
 const THINKING_LEVELS = ["", "auto", "off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
 
 function shorten(p: string) {
@@ -351,10 +351,7 @@ export function AgentsConfig({ cwd }: { cwd: string | null }) {
                   {creating ? (
                     <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-muted)" }}>
                       {t("agentsConfig.scope")}
-                      <select value={createScope} onChange={(e) => setCreateScope(e.target.value as "user" | "project")} style={{ ...nativeSelectStyle, fontSize: 11, minHeight: 28 }}>
-                        <option value="user">{t("agentsConfig.scopeUser")}</option>
-                        <option value="project" disabled={!canEditProject}>{t("agentsConfig.scopeProject")}</option>
-                      </select>
+                      <GlideSelect size="sm" value={createScope} onChange={(v) => setCreateScope(v as "user" | "project")} options={[{ value: "user", label: t("agentsConfig.scopeUser") }, { value: "project", label: t("agentsConfig.scopeProject"), disabled: !canEditProject }]} />
                     </label>
                   ) : null}
                 </div>
@@ -373,9 +370,7 @@ export function AgentsConfig({ cwd }: { cwd: string | null }) {
                   </label>
                   <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agentsConfig.thinkingLevel")}</span>
-                    <select value={thinkingLevel} onChange={(e) => setThinkingLevel(e.target.value)} style={nativeSelectStyle}>
-                      {THINKING_LEVELS.map((lv) => <option key={lv} value={lv}>{lv || t("agentsConfig.defaultThinking")}</option>)}
-                    </select>
+                    <GlideSelect value={thinkingLevel} onChange={setThinkingLevel} options={THINKING_LEVELS.map((lv) => ({ value: lv, label: lv || t("agentsConfig.defaultThinking") }))} style={{ width: "100%" }} />
                   </label>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>

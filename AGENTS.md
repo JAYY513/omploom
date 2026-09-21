@@ -125,6 +125,7 @@ components/
   FileViewer.tsx      file content in a tab
   TabBar.tsx          tab bar (Chat + open file tabs)
   ui/                 shared primitives: Dialog/Tooltip/Collapsible, fields, toast
+  ui/glide-select.tsx  GlideSelect combobox (ReactBits port, portal menu, design tokens)
 
 hooks/
   useAgentSession.ts       messages + streaming + SSE + fork/navigate/reconciliation logic

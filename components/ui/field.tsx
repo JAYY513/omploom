@@ -24,6 +24,7 @@ import {
 } from "react";
 import { AlertCircle, Check as CheckIcon, Eye, EyeOff, Info, TriangleAlert, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/primitives";
+import { GlideSelect } from "@/components/ui/glide-select";
 
 /* ────────────────────────── Field wrapper ────────────────────────── */
 
@@ -471,50 +472,18 @@ export function Select({
   disabled,
   id,
 }: SelectProps) {
-  const [focused, setFocused] = useState(false);
   const isInvalid = Boolean(invalid || error);
   return (
-    <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-    <select
-      id={id}
+    <GlideSelect
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={onChange}
+      options={required ? options : [{ value: "", label: placeholder ?? "" }, ...options]}
+      placeholder={placeholder ?? ""}
       disabled={disabled}
-      aria-invalid={isInvalid || undefined}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      style={{
-        ...inputShellStyle({ invalid: isInvalid }),
-        ...focusGlowStyle(focused, isInvalid),
-        color: value ? "var(--text)" : "var(--text-dim)",
-        appearance: "none",
-        width: "100%",
-        paddingRight: 24,
-        opacity: disabled ? 0.6 : 1,
-      }}
-    >
-      {!required && <option value="">{placeholder ?? ""}</option>}
-      {options.map((o) => (
-        <option key={o} value={o}>
-          {o}
-        </option>
-      ))}
-    </select>
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      style={{ position: "absolute", right: 8, color: "var(--text-dim)", pointerEvents: "none" }}
-    >
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-    </div>
+      invalid={isInvalid}
+      id={id}
+      style={{ width: "100%" }}
+    />
   );
 }
 

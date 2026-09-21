@@ -3909,3 +3909,164 @@ html.dark .dropdown-surface :is(select, option) {
     width: 40% !important;
   }
 }
+/* GlideSelect combobox (ReactBits port, components/ui/glide-select.tsx):
+   trigger chip + portaled menu with a hover/keyboard pill that glides
+   between rows. All colors are design tokens — no hardcoded palette.
+   Motion matches upstream: 180/120ms pop, 220ms glide, radius-4 inner. */
+.glide-select {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  min-width: 0;
+  max-width: 100%;
+}
+.glide-select[data-size="sm"] { --gs-chip: 28px; --gs-row: 26px; --gs-font: 12px; }
+.glide-select[data-size="md"] { --gs-chip: 32px; --gs-row: 30px; --gs-font: 13px; }
+.glide-select[data-size="lg"] { --gs-chip: 44px; --gs-row: 40px; --gs-font: 14px; }
+/* Portaled menu loses root inheritance — rescope the row/font vars by size. */
+.glide-select__menu[data-size="sm"] { --gs-row: 26px; --gs-font: 12px; }
+.glide-select__menu[data-size="md"] { --gs-row: 30px; --gs-font: 13px; }
+.glide-select__menu[data-size="lg"] { --gs-row: 40px; --gs-font: 14px; }
+/* Trigger: borderless chip filling its wrapper (upstream shape, app widths). */
+.glide-select__trigger {
+  position: relative;
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 6px;
+  height: var(--gs-chip);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  text-align: left;
+  padding: 0 8px 0 10px;
+  border: 0;
+  border-radius: calc(var(--radius-card) - 4px);
+  background: color-mix(in srgb, var(--text) 8%, var(--bg-panel));
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--gs-font);
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background-color 100ms ease, border-color var(--dur-fast) var(--ease-out-warm), box-shadow var(--dur-fast) var(--ease-out-warm), transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.glide-select__trigger[data-invalid] { box-shadow: inset 0 0 0 1px var(--accent); }
+.glide-select__trigger:disabled { cursor: default; }
+@media (hover: hover) and (pointer: fine) {
+  .glide-select__trigger:not(:disabled):hover { background: color-mix(in srgb, var(--text) 14%, var(--bg-panel)); }
+}
+.glide-select__trigger[aria-expanded="true"] { background: color-mix(in srgb, var(--text) 14%, var(--bg-panel)); }
+.glide-select__trigger:not(:disabled):active { transform: scale(0.97); }
+.glide-select__trigger:focus-visible { box-shadow: var(--focus-ring); }
+.glide-select__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.glide-select__label[data-empty] { opacity: 0.6; }
+.glide-select[data-swap] .glide-select__label { animation: glide-swap 160ms ease; }
+.glide-select__chevron {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.glide-select__trigger[aria-expanded="true"] .glide-select__chevron { transform: rotate(180deg); }
+.glide-select__menu {
+  position: fixed;
+  z-index: 1200;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-pop);
+  transform-origin: top left;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1), transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.glide-select__menu[data-state="open"] {
+  opacity: 1;
+  transform: none;
+}
+.glide-select__menu[data-state="closing"] {
+  transition-duration: 120ms;
+  pointer-events: none;
+}
+.glide-select__list {
+  position: relative;
+  display: grid;
+  gap: 1px;
+  max-height: 260px;
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+.glide-select__pill {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: var(--gs-row);
+  border-radius: calc(var(--radius-card) - 4px);
+  background: color-mix(in srgb, var(--text) 13%, var(--bg-panel));
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1), opacity 150ms ease;
+}
+.glide-select__option {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--gs-row);
+  padding: 0 8px 0 10px;
+  border-radius: calc(var(--radius-card) - 4px);
+  color: var(--text);
+  font-size: var(--gs-font);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.glide-select__option[data-disabled] { opacity: 0.45; cursor: not-allowed; }
+.glide-select__option[aria-selected="true"] { background: color-mix(in srgb, var(--text) 13%, transparent); }
+.glide-select__list[data-live] .glide-select__option[aria-selected="true"] { background: transparent; }
+.glide-select__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.glide-select__tag {
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+  font-size: calc(var(--gs-font) - 2px);
+}
+.glide-select__check {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--text);
+  visibility: hidden;
+}
+.glide-select__check[data-on] { visibility: visible; }
+@media (prefers-reduced-motion: reduce) {
+  .glide-select__menu { transition: opacity 180ms ease; }
+  .glide-select__menu[data-state="closing"] { transition-duration: 120ms; }
+  .glide-select__pill { transition: opacity 150ms ease; }
+  .glide-select__chevron { transition: none; }
+  .glide-select__trigger:not(:disabled):active { transform: none; }
+  .glide-select__trigger { transition: background-color 100ms ease; }
+  .glide-select[data-swap] .glide-select__label { animation: none; }
+}
