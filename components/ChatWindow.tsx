@@ -1198,8 +1198,8 @@ export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCa
       {isEmptyNew ? (
         <div className="relative flex flex-1 flex-col overflow-hidden">
           {emptyDotGridEnabled && <DotGrid />}
-          <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8" style={{ minHeight: 0, position: "relative" }}>
-            <div className="empty-chat-brand" style={{ margin: "0 8px 4px", width: "100%", maxWidth: CHAT_COLUMN_MAX_WIDTH, fontFamily: "var(--font-mono)" }}>
+          <div className="flex flex-1 flex-col items-center overflow-y-auto px-4 py-8" style={{ minHeight: 0, position: "relative" }}>
+            <div className="empty-chat-brand" style={{ margin: "0 0 4px", width: "100%", maxWidth: CHAT_COLUMN_MAX_WIDTH, padding: `0 ${CHAT_COLUMN_PADDING}px`, boxSizing: "border-box", fontFamily: "var(--font-mono)" }}>
               <ParticleText
                 text="omp loom"
                 height={190}
@@ -1225,8 +1225,8 @@ export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCa
                 <OmpRuntimeVersion />
               </div>
             </div>
-            <div style={{ padding: `0 ${CHAT_COLUMN_PADDING}px`, width: "100%", maxWidth: CHAT_COLUMN_MAX_WIDTH, boxSizing: "border-box" }}>
-              <FadeIn distance={10} style={{ margin: "6px 8px 12px", textAlign: "center" }}>
+            <div style={{ width: "100%", maxWidth: CHAT_COLUMN_MAX_WIDTH, padding: `0 ${CHAT_COLUMN_PADDING}px`, boxSizing: "border-box" }}>
+              <FadeIn distance={10} style={{ margin: "6px 0 12px", textAlign: "center" }}>
                 <SplitText
                   text={t("chatWindow.emptyTitle")}
                   tag="h1"
@@ -1251,7 +1251,7 @@ export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCa
             <FadeIn distance={10} delay={120} style={{ width: "100%", maxWidth: CHAT_COLUMN_MAX_WIDTH, padding: `0 ${CHAT_COLUMN_PADDING}px`, boxSizing: "border-box" }}>
             <div>{newSessionWorkspace}</div>
             </FadeIn>
-            <FadeIn distance={10} delay={200} style={{ width: "100%", maxWidth: CHAT_COLUMN_MAX_WIDTH, padding: `0 ${CHAT_COLUMN_PADDING}px`, boxSizing: "border-box" }}>
+            <FadeIn distance={10} delay={200} style={{ width: "100%", maxWidth: CHAT_COLUMN_MAX_WIDTH, boxSizing: "border-box" }}>
             <NoticeShelf notices={notices} onDismiss={dismissNotice} align="right" />
             {chatInputElement}
             </FadeIn>
