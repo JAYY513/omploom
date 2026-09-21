@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { comparableProjectPath } from "@/lib/comparable-path";
 import { Check, ChevronDown, ChevronRight, Folder, GitBranch, MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import { Tooltip } from "./ui/primitives";
+import { StaggerList } from "./effects/StaggerList";
 import { ConfirmDialog } from "./ui/field";
 import { copyText } from "@/lib/clipboard";
 import { transcriptToMarkdown } from "@/lib/transcript";
@@ -162,7 +163,16 @@ function ProjectRow({
         onDrop={(event) => { event.preventDefault(); onDropProject(project.path); }}
         onDragEnd={() => onDragPathChange(null)}
         onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseLeave={(event) => {
+          setHovered(false);
+          event.currentTarget.style.removeProperty("--spot-x");
+          event.currentTarget.style.removeProperty("--spot-y");
+        }}
+        onMouseMove={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          event.currentTarget.style.setProperty("--spot-x", `${event.clientX - rect.left}px`);
+          event.currentTarget.style.setProperty("--spot-y", `${event.clientY - rect.top}px`);
+        }}
         onKeyDown={(event) => {
           if (event.key === "Escape" && actionMenuOpen) {
             event.stopPropagation();
@@ -412,20 +422,22 @@ function ProjectRow({
             </div>
           ) : (
             <>
-              {visibleRoots.map((node) => (
-                <SessionTreeItem
-                  key={node.session.id}
-                  node={node}
-                  selectedSessionId={selectedSessionId}
-                  runningSessionIds={runningSessionIds}
-                  unreadSessionIds={unreadSessionIds}
-                  relativeTimeNow={relativeTimeNow}
-                  onSelectSession={onSelectSession}
-                  onRenamed={onRenamed}
-                  onSessionDeleted={onSessionDeleted}
-                  depth={0}
-                />
-              ))}
+              <StaggerList stagger={24}>
+                {visibleRoots.map((node) => (
+                  <SessionTreeItem
+                    key={node.session.id}
+                    node={node}
+                    selectedSessionId={selectedSessionId}
+                    runningSessionIds={runningSessionIds}
+                    unreadSessionIds={unreadSessionIds}
+                    relativeTimeNow={relativeTimeNow}
+                    onSelectSession={onSelectSession}
+                    onRenamed={onRenamed}
+                    onSessionDeleted={onSessionDeleted}
+                    depth={0}
+                  />
+                ))}
+              </StaggerList>
               {hiddenCount > 0 && (
                 <button
                   onClick={() => setShowAllSessions((v) => !v)}
@@ -959,7 +971,16 @@ const SessionItem = memo(function SessionItem({
       className="session-item-row"
  onClick={confirmDelete || renaming ? undefined : onClick}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={(event) => {
+        setHovered(false);
+        event.currentTarget.style.removeProperty("--spot-x");
+        event.currentTarget.style.removeProperty("--spot-y");
+      }}
+      onMouseMove={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        event.currentTarget.style.setProperty("--spot-x", `${event.clientX - rect.left}px`);
+        event.currentTarget.style.setProperty("--spot-y", `${event.clientY - rect.top}px`);
+      }}
       onKeyDown={(event) => {
         if ((confirmDelete || actionMenuOpen) && event.key === "Escape") {
           event.stopPropagation();

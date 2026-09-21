@@ -1,17 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Ban, CheckCircle2, ChevronDown, Circle, CircleAlert, CircleDotDashed, ListChecks } from "lucide-react";
+import { ChevronDown, ListChecks } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import type { TodoItem, TodoPhase } from "@/lib/pi-types";
+import { StatusMark, type StatusMarkStatus } from "./effects/StatusMark";
+import { SpringCheck } from "./effects/SpringCheck";
+
+function todoStatusMarkStatus(status: TodoItem["status"]): StatusMarkStatus {
+  if (status === "completed") return "done";
+  if (status === "in_progress") return "running";
+  if (status === "abandoned") return "cancelled";
+  return "pending";
+}
 
 function TodoStatusIcon({ status }: { status: TodoItem["status"] }) {
-  const props = { size: 14, strokeWidth: 1.8, "aria-hidden": true as const };
-  if (status === "completed") return <CheckCircle2 {...props} color="var(--accent)" />;
-  if (status === "in_progress") return <CircleDotDashed {...props} color="var(--accent)" />;
-  if (status === "blocked") return <CircleAlert {...props} color="var(--text-muted)" />;
-  if (status === "abandoned") return <Ban {...props} color="var(--text-dim)" />;
-  return <Circle {...props} color="var(--text-dim)" />;
+  if (status === "completed") {
+    return <SpringCheck size={15} />;
+  }
+  return (
+    <StatusMark
+      status={todoStatusMarkStatus(status)}
+      size={14}
+    />
+  );
 }
 
 interface TodoListProps {
@@ -132,7 +144,7 @@ export function TodoList({ phases = [], collapsible = false, defaultExpanded = f
                   className="flex min-w-0 items-start gap-2 text-[13px] text-text"
                   aria-label={`${t(`chatWindow.todoStatus.${task.status}`)}: ${task.content}`}
                 >
-                  <span className="mt-0.5 shrink-0"><TodoStatusIcon status={task.status} /></span>
+                  <span className="mt-0.5 shrink-0" aria-hidden><TodoStatusIcon status={task.status} /></span>
                   <span className="min-w-0">
                     <span className={task.status === "completed" || task.status === "abandoned" ? "text-text-dim line-through" : undefined}>
                       {task.content}

@@ -64,13 +64,29 @@ export async function register(): Promise<void> {
     } catch { /* diagnostics must never crash the server */ }
   };
   const describe = (value: unknown) => (value instanceof Error ? `${value.name}: ${value.message}\n${value.stack ?? ""}` : String(value));
+  // Benign transport aborts (closed tab / cancelled SSE / half-open socket)
+  // surface as uncaught "aborted" / ECONNRESET / EPIPE from node:_http_server.
+  // They must never kill the long-running server — journal and continue.
+  const isBenignAbort = (value: unknown): boolean => {
+    const code = (value as { code?: unknown } | null)?.code;
+    if (code === "ECONNRESET" || code === "EPIPE" || code === "ERR_STREAM_PREMATURE_CLOSE") return true;
+    return /aborted|ECONNRESET|EPIPE|ERR_STREAM_PREMATURE_CLOSE/i.test(describe(value));
+  };
   process.on("uncaughtException", (error) => {
+    if (isBenignAbort(error)) {
+      appendDiag("aborted", describe(error));
+      return;
+    }
     appendDiag("crash", `uncaughtException ${describe(error)}`);
     // An uncaughtException listener suppresses Node's default exit; keep the
     // crash-visible semantics by exiting explicitly.
     process.exit(2);
   });
   process.on("unhandledRejection", (reason) => {
+    if (isBenignAbort(reason)) {
+      appendDiag("aborted", describe(reason));
+      return;
+    }
     appendDiag("crash", `unhandledRejection ${describe(reason)}`);
     // Same as above: preserve Node's crash-on-unhandled-rejection default.
     process.exit(2);

@@ -13,7 +13,12 @@ import { ExtensionDialog } from "./ExtensionDialog";
 import { SubagentTranscriptDialog } from "./SubagentTranscriptDialog";
 import { ChatMinimap, useMessageRefs } from "./ChatMinimap";
 import { ComposerPanels } from "./ComposerPanels";
-import OmpLoomLogo from "./OmpLoomLogo";
+import { BlurText } from "./effects/BlurText";
+import { DotGrid } from "./effects/DotGrid";
+import { FadeIn } from "./effects/FadeIn";
+import { ParticleText } from "./effects/ParticleText";
+import { SplitText } from "./effects/SplitText";
+import { TypeHint } from "./effects/TypeHint";
 import { CHAT_COLUMN_MAX_WIDTH, MINIMAP_WIDTH } from "@/lib/chat-layout";
 import { useAgentSession, type AgentPhase, type NoticeItem, type SubagentInfo } from "@/hooks/useAgentSession";
 import { useAudio } from "@/hooks/useAudio";
@@ -38,6 +43,7 @@ interface Props {
   newSessionCwd: string | null;
   newSessionWorkspace?: ReactNode;
   toolCallsDefaultCollapsed?: boolean;
+  emptyDotGridEnabled?: boolean;
   onAgentEnd?: () => void;
   onSessionCreated?: (session: SessionInfo) => void;
   onSessionForked?: (newSessionId: string) => void;
@@ -557,7 +563,7 @@ const CommittedTranscript = memo(function CommittedTranscript({
   );
 });
 
-export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCallsDefaultCollapsed = true, onAgentEnd, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemPromptLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onProviderUsageContextChange, onGenerationSpeedChange, onOpenFile, onOpenProviders }: Props) {
+export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCallsDefaultCollapsed = true, emptyDotGridEnabled = true, onAgentEnd, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemPromptLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onProviderUsageContextChange, onGenerationSpeedChange, onOpenFile, onOpenProviders }: Props) {
   const { t, tn } = useI18n();
   const { playDoneSound, unlockAudio } = useAudio();
   const isMobile = useIsMobile();
@@ -1191,36 +1197,65 @@ export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCa
 
       {isEmptyNew ? (
         <div className="relative flex flex-1 flex-col overflow-hidden">
-          <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8" style={{ minHeight: 0 }}>
-          <div className="w-full" style={{ maxWidth: CHAT_COLUMN_MAX_WIDTH }}>
-            <div
-               className="mb-3 empty-chat-brand"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                marginLeft: 8,
-                marginRight: 8,
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, lineHeight: 1.4, overflow: "hidden" }}>
-                <OmpLoomLogo size={26} />
-                <span className="omp-wordmark" style={{ fontSize: 18, color: "var(--text)", fontWeight: 600, letterSpacing: "0.02em", flexShrink: 0, whiteSpace: "nowrap", fontFamily: "var(--font-mono)" }}>omp loom</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
+          {emptyDotGridEnabled && <DotGrid />}
+          <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8" style={{ minHeight: 0, position: "relative" }}>
+            <div className="empty-chat-brand" style={{ margin: "0 8px 4px", width: "100%", maxWidth: CHAT_COLUMN_MAX_WIDTH, fontFamily: "var(--font-mono)" }}>
+              <ParticleText
+                text="omp loom"
+                height={190}
+                fontSize={120}
+                fontWeight={800}
+                fontFamily="inherit"
+                particleSize={2}
+                density={3}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  gap: 8,
+                  marginTop: -6,
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
                 <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                   web <span style={{ color: "var(--text)" }}>v{process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0"}</span>
                 </span>
                 <OmpRuntimeVersion />
               </div>
             </div>
+            <div style={{ padding: `0 ${CHAT_COLUMN_PADDING}px` }}>
+              <FadeIn distance={10} style={{ margin: "6px 8px 12px", textAlign: "center" }}>
+                <SplitText
+                  text={t("chatWindow.emptyTitle")}
+                  tag="h1"
+                  splitType="chars"
+                  delay={24}
+                  style={{ margin: 0, fontSize: 30, fontWeight: 650, letterSpacing: "-0.01em", color: "var(--text)" }}
+                />
+                <BlurText
+                  text={t("chatWindow.emptySubtitle")}
+                  animateBy="words"
+                  delay={60}
+                  style={{ margin: "6px auto 0", maxWidth: 460, fontSize: 13, lineHeight: 1.6, color: "var(--text-muted)", display: "block", textAlign: "center" }}
+                />
+                <TypeHint
+                  text={t("chatWindow.emptyHint")}
+                  typingSpeed={26}
+                  initialDelay={900}
+                  style={{ margin: "8px auto 0", maxWidth: 460, fontSize: 12, lineHeight: 1.6, color: "var(--text-dim)", fontFamily: "var(--font-mono)", textAlign: "center" }}
+                />
+              </FadeIn>
+            </div>
+            <FadeIn distance={10} delay={120}>
             <div style={{ padding: `0 ${CHAT_COLUMN_PADDING}px` }}>{newSessionWorkspace}</div>
+            </FadeIn>
+            <FadeIn distance={10} delay={200}>
             <NoticeShelf notices={notices} onDismiss={dismissNotice} align="right" />
             {chatInputElement}
+            </FadeIn>
           </div>
-        </div>
         </div>
       ) : (
       <>

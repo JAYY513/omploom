@@ -1859,7 +1859,7 @@ export function ModelsConfig({ onClose, onSelectTab, onSaved, embedded = false }
                       {providers.map(([pName, pData]) => {
                         const models = pData.models ?? [];
                         return (
-                          <div key={pName} className="settings-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}>
+                          <div key={pName} className="settings-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }} onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); event.currentTarget.style.setProperty("--spot-x", `${event.clientX - rect.left}px`); event.currentTarget.style.setProperty("--spot-y", `${event.clientY - rect.top}px`); }} onMouseLeave={(event) => { event.currentTarget.style.removeProperty("--spot-x"); event.currentTarget.style.removeProperty("--spot-y"); }}>
                             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "1 1 220px", minWidth: 0 }}>
                                 <ProviderIcon id={pName} size={22} />

@@ -135,3 +135,10 @@ test("the scroll area is reachable by keyboard and named", () => {
   assert.match(html, /<section[^>]*aria-label="Tasks"/);
   assert.doesNotMatch(html, /role="group"[^>]*aria-label="Tasks"/);
 });
+test("completed rows render the spring check mark", () => {
+  const html = renderToStaticMarkup(React.createElement(TodoList, {
+    phases: [{ name: "Implementation", tasks: [{ content: "Ship it", status: "completed" }] }],
+  }));
+  assert.match(html, /data-effects="spring-check"/);
+  assert.match(html, /Ship it/);
+});

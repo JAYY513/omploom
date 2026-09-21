@@ -205,6 +205,15 @@ function SearchResultsList({ results, query, onSelect }: { results: SearchResult
               type="button"
               onClick={() => onSelect(result)}
               className="settings-card"
+              onMouseMove={(event) => {
+                const rect = event.currentTarget.getBoundingClientRect();
+                event.currentTarget.style.setProperty("--spot-x", `${event.clientX - rect.left}px`);
+                event.currentTarget.style.setProperty("--spot-y", `${event.clientY - rect.top}px`);
+              }}
+              onMouseLeave={(event) => {
+                event.currentTarget.style.removeProperty("--spot-x");
+                event.currentTarget.style.removeProperty("--spot-y");
+              }}
               style={{
                 textAlign: "left",
                 display: "flex",
@@ -334,6 +343,15 @@ function NativeSetting({ label, description, scope, searchId, children }: { labe
       ref={ref}
       data-search-id={settingSlug}
       className="settings-card"
+      onMouseMove={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        event.currentTarget.style.setProperty("--spot-x", `${event.clientX - rect.left}px`);
+        event.currentTarget.style.setProperty("--spot-y", `${event.clientY - rect.top}px`);
+      }}
+      onMouseLeave={(event) => {
+        event.currentTarget.style.removeProperty("--spot-x");
+        event.currentTarget.style.removeProperty("--spot-y");
+      }}
       style={{
         minWidth: 0,
         width: "100%",
@@ -359,7 +377,7 @@ function NativeSetting({ label, description, scope, searchId, children }: { labe
   );
 }
 
-export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCallsDefaultCollapsedChange, providerUsageVisible, onProviderUsageVisibleChange, scopeNativeSelectAll, onScopeNativeSelectAllChange, cwd, sessionId, onModelsSaved, onPluginsReloaded, appUpdate, ompUpdateAvailable, onRefreshAppUpdate, onOmpUpdateAvailabilityChange, onRequestAppUpdate, onSelectTab, onClose }: {
+export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCallsDefaultCollapsedChange, providerUsageVisible, onProviderUsageVisibleChange, scopeNativeSelectAll, onScopeNativeSelectAllChange, emptyDotGridEnabled, onEmptyDotGridChange, cwd, sessionId, onModelsSaved, onPluginsReloaded, appUpdate, ompUpdateAvailable, onRefreshAppUpdate, onOmpUpdateAvailabilityChange, onRequestAppUpdate, onSelectTab, onClose }: {
   activeTab: SettingsTab;
   toolCallsDefaultCollapsed: boolean;
   onToolCallsDefaultCollapsedChange: (collapsed: boolean) => void;
@@ -367,6 +385,8 @@ export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCal
   onProviderUsageVisibleChange: (visible: boolean) => void;
   scopeNativeSelectAll: boolean;
   onScopeNativeSelectAllChange: (enabled: boolean) => void;
+  emptyDotGridEnabled: boolean;
+  onEmptyDotGridChange: (enabled: boolean) => void;
   cwd: string | null;
   sessionId: string | null;
   onModelsSaved: () => void;
@@ -789,6 +809,9 @@ export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCal
                   </NativeSetting>
                   <NativeSetting searchId="scope-native-select-all" label={t("settingsConfig.scopeNativeSelectAll")} description={t("settingsConfig.scopeNativeSelectAllDesc")} scope="UI">
                     <ToggleSwitch checked={scopeNativeSelectAll} onChange={onScopeNativeSelectAllChange} />
+                  </NativeSetting>
+                  <NativeSetting searchId="empty-dot-grid" label={t("settingsConfig.emptyDotGrid")} description={t("settingsConfig.emptyDotGridDesc")} scope="UI">
+                    <ToggleSwitch checked={emptyDotGridEnabled} onChange={onEmptyDotGridChange} />
                   </NativeSetting>
                   <NativeSetting searchId="completion-sound" label={t("settingsConfig.completionSound")} description={t("settingsConfig.completionSoundDesc")} scope="UI">
                     <ToggleSwitch

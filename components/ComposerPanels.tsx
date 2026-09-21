@@ -13,7 +13,7 @@ import { countNestedSubagents, formatCost, formatDuration, formatTokens, shortMo
 import { formatCompactNumber, formatPercent, getCacheHitRate } from "@/lib/format";
 import { copyText } from "@/lib/clipboard";
 import { TodoList } from "./TodoList";
-import { SubagentStatusIcon } from "./SubagentStatusIcon";
+import { StatusMark, type StatusMarkStatus } from "./effects/StatusMark";
 
 // Panels unmount when their inputs are empty and remount when they fill
 const TODO_COLLAPSED_STORAGE_KEY = "omp-loom:composer-todo-collapsed";
@@ -45,8 +45,22 @@ const SUBAGENT_STATE_KEYS: Record<SubagentInfo["status"], string> = {
   aborted: "chatWindow.subagentState.aborted",
 };
 
+function subagentStatusMarkStatus(status: SubagentInfo["status"]): StatusMarkStatus {
+  if (status === "completed") return "done";
+  if (status === "failed") return "failed";
+  if (status === "aborted") return "cancelled";
+  return "running";
+}
+
 function SubagentStatusBadge({ subagent }: { subagent: SubagentInfo }) {
-  return <SubagentStatusIcon status={subagent.status} live={subagent.source !== "history"} />;
+  const live = subagent.source !== "history";
+  // Orphaned/history entries keep a hollow idle ring instead of a spinner.
+  const markStatus: StatusMarkStatus = live ? subagentStatusMarkStatus(subagent.status) : "pending";
+  return (
+    <span aria-hidden>
+      <StatusMark status={markStatus} size={12} />
+    </span>
+  );
 }
 
 /** Icon-first telemetry keeps the compact roster scannable without label noise. */

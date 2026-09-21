@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, memo, useRef, useEffect } from "react";
 import { GitBranch } from "lucide-react";
 import { translate, useI18n } from "@/lib/i18n";
 import type { BranchPreview, SessionEntry, SessionTreeNode } from "@/lib/types";
-
+import { FadeIn } from "./effects/FadeIn";
 interface Props {
   tree: SessionTreeNode[];
   activeLeafId: string | null;
@@ -370,35 +370,40 @@ export function BranchNavigator({ tree, activeLeafId, onLeafChange, inline, cont
           {branchIcon}
         </button>
         {open && dropdownPos && (
-          <div data-branch-panel className="dropdown-surface" style={{
-            position: "fixed",
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            width: dropdownPos.width,
-            maxHeight: dropdownPos.height,
-            overflowY: "auto",
-            zIndex: 600,
-          }}>
-            {hasContent ? (
-              <div style={{ padding: "4px 12px 8px 12px", maxHeight: 260, overflowY: "auto" }}>
-                {topLevelBranches.map((child, idx) => (
-                  <TreeNodeView
-                    key={child.entry.id}
-                    node={child}
-                    activePathIds={activePathIds}
-                    depth={0}
-                    isLast={idx === topLevelBranches.length - 1}
-                    parentLines={[]}
-                    onSelect={handleSelect}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div style={{ padding: "10px 16px", fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
-                {noBranchReason}
-              </div>
-            )}
-          </div>
+          <FadeIn
+            distance={6}
+            style={{
+              position: "fixed",
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              width: dropdownPos.width,
+              maxHeight: dropdownPos.height,
+              overflowY: "auto",
+              zIndex: 600,
+            }}
+          >
+            <div data-branch-panel className="dropdown-surface">
+              {hasContent ? (
+                <div style={{ padding: "4px 12px 8px 12px", maxHeight: 260, overflowY: "auto" }}>
+                  {topLevelBranches.map((child, idx) => (
+                    <TreeNodeView
+                      key={child.entry.id}
+                      node={child}
+                      activePathIds={activePathIds}
+                      depth={0}
+                      isLast={idx === topLevelBranches.length - 1}
+                      parentLines={[]}
+                      onSelect={handleSelect}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div style={{ padding: "10px 16px", fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
+                  {noBranchReason}
+                </div>
+              )}
+            </div>
+          </FadeIn>
         )}
       </div>
     );
@@ -430,16 +435,19 @@ export function BranchNavigator({ tree, activeLeafId, onLeafChange, inline, cont
 
       {/* Tree panel - overlay */}
       {open && (
-        <div style={{
-          position: "absolute",
-          top: "100%",
-          left: 0,
-          right: 0,
-          background: "var(--bg)",
-          borderBottom: "1px solid var(--border)",
-          boxShadow: "var(--shadow-pop)",
-          zIndex: 100,
-        }}>
+        <FadeIn
+          distance={6}
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            right: 0,
+            background: "var(--bg)",
+            borderBottom: "1px solid var(--border)",
+            boxShadow: "var(--shadow-pop)",
+            zIndex: 100,
+          }}
+        >
           {hasContent ? (
             <div style={{ padding: "4px 12px 8px 12px", maxHeight: 260, overflowY: "auto" }}>
               {topLevelBranches.map((child, idx) => (
@@ -459,7 +467,7 @@ export function BranchNavigator({ tree, activeLeafId, onLeafChange, inline, cont
               {noBranchReason ?? t("branchNavigator.noBranches")}
             </div>
           )}
-        </div>
+        </FadeIn>
       )}
     </div>
   );

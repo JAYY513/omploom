@@ -15,6 +15,7 @@ import { type FileExplorerHandle } from "./FileExplorer";
 import type { RightPanelView } from "./RightPanel";
 import { BranchNavigator } from "./BranchNavigator";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { ShinyText } from "./effects/ShinyText";
 import { Check, Ellipsis, Folder, History, Menu, PanelLeft, Terminal, Wand2, Zap } from "lucide-react";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { translate, useI18n } from "@/lib/i18n";
@@ -83,6 +84,7 @@ const RightPanel = dynamic(() => import("./RightPanel").then((m) => m.RightPanel
 const TOOL_CALLS_COLLAPSED_STORAGE_KEY = "omp-loom:tool-calls-collapsed";
 const PROVIDER_USAGE_VISIBLE_STORAGE_KEY = "omp-loom:provider-usage-visible";
 const NATIVE_SELECT_ALL_STORAGE_KEY = "omp-loom:scope-native-select-all";
+const EMPTY_DOT_GRID_STORAGE_KEY = "omp-loom:empty-dot-grid";
 
 const CommandPalette = dynamic(() => import("./CommandPalette").then((m) => m.CommandPalette), {
   ssr: false,
@@ -126,6 +128,7 @@ export function AppShell() {
   const [toolCallsDefaultCollapsed, setToolCallsDefaultCollapsed] = useState(true);
   const [providerUsageVisible, setProviderUsageVisible] = useState(true);
   const [scopeNativeSelectAll, setScopeNativeSelectAll] = useState(false);
+  const [emptyDotGridEnabled, setEmptyDotGridEnabled] = useState(true);
   const [sidebarResizing, setSidebarResizing] = useState(false);
   // Active drag handlers so an unmount mid-drag can detach them.
   const sidebarResizeHandlersRef = useRef<{ onMove: (ev: MouseEvent) => void; onUp: () => void } | null>(null);
@@ -138,6 +141,7 @@ export function AppShell() {
       setToolCallsDefaultCollapsed(window.localStorage.getItem(TOOL_CALLS_COLLAPSED_STORAGE_KEY) !== "false");
       setProviderUsageVisible(window.localStorage.getItem(PROVIDER_USAGE_VISIBLE_STORAGE_KEY) !== "false");
       setScopeNativeSelectAll(window.localStorage.getItem(NATIVE_SELECT_ALL_STORAGE_KEY) === "true");
+      setEmptyDotGridEnabled(window.localStorage.getItem(EMPTY_DOT_GRID_STORAGE_KEY) !== "false");
     } catch {
       // Keep the compact default when storage is unavailable.
     }
@@ -162,6 +166,14 @@ export function AppShell() {
     setScopeNativeSelectAll(enabled);
     try {
       window.localStorage.setItem(NATIVE_SELECT_ALL_STORAGE_KEY, String(enabled));
+    } catch {
+      // The preference still applies for this page load.
+    }
+  }, []);
+  const handleEmptyDotGridChange = useCallback((enabled: boolean) => {
+    setEmptyDotGridEnabled(enabled);
+    try {
+      window.localStorage.setItem(EMPTY_DOT_GRID_STORAGE_KEY, String(enabled));
     } catch {
       // The preference still applies for this page load.
     }
@@ -1684,6 +1696,8 @@ export function AppShell() {
             onProviderUsageVisibleChange={handleProviderUsageVisibleChange}
             scopeNativeSelectAll={scopeNativeSelectAll}
             onScopeNativeSelectAllChange={handleScopeNativeSelectAllChange}
+            emptyDotGridEnabled={emptyDotGridEnabled}
+            onEmptyDotGridChange={handleEmptyDotGridChange}
             cwd={activeCwd ?? selectedSession?.cwd ?? newSessionCwd}
             sessionId={selectedSession?.id ?? null}
             onModelsSaved={() => setModelsRefreshKey((k) => k + 1)}
@@ -1912,7 +1926,11 @@ export function AppShell() {
                     }}
                     title={sessionTitle}
                   >
-                    {sessionTitle}
+                    {autoNameStatus.kind === "naming" ? (
+                      <ShinyText text={sessionTitle} speed={1.8} />
+                    ) : (
+                      sessionTitle
+                    )}
                   </span>
                   {selectedSession && (
                     <button
@@ -2089,6 +2107,7 @@ export function AppShell() {
               onGenerationSpeedChange={handleGenerationSpeedChange}
               onOpenProviders={() => setSettingsTab("providers")}
               toolCallsDefaultCollapsed={toolCallsDefaultCollapsed}
+              emptyDotGridEnabled={emptyDotGridEnabled}
             />
           ) : initialCwdStatus === "validating" ? (
             <div
