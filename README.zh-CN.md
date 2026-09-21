@@ -13,16 +13,9 @@
 
 [oh-my-pi (omp)](https://github.com/can1357/oh-my-pi) 编程智能体的现代 Web UI。它读取本地的 omp 会话，在浏览器中提供实时对话、项目会话浏览、配置管理和文件预览等功能。
 
-![omploom — 演示](docs/demo.gif)
+![omploom — light theme](docs/screenshot-light.png)
+![omploom — dark theme](docs/screenshot-dark.png)
 
-<details>
-<summary>截图（浅色 / 深色主题）</summary>
-
-![omploom — 浅色主题](docs/screenshot-light.png)
-
-![omploom — 深色主题](docs/screenshot-dark.png)
-
-</details>
 
 ## 环境要求
 

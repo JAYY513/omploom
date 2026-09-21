@@ -13,16 +13,9 @@
 
 [oh-my-pi (omp)](https://github.com/can1357/oh-my-pi) コーディングエージェント向けのモダンな Web UI です。ローカルの omp セッションを読み込み、ブラウザから対話、プロジェクト閲覧、設定管理、ファイルプレビューを行えるワークスペースを提供します。
 
-![omploom — デモ](docs/demo.gif)
+![omploom — light theme](docs/screenshot-light.png)
+![omploom — dark theme](docs/screenshot-dark.png)
 
-<details>
-<summary>スクリーンショット（ライト / ダークテーマ）</summary>
-
-![omploom — ライトテーマ](docs/screenshot-light.png)
-
-![omploom — ダークテーマ](docs/screenshot-dark.png)
-
-</details>
 
 ## 必要条件
 

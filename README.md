@@ -13,16 +13,9 @@
 
 A clean, modern web UI for the [oh-my-pi (omp)](https://github.com/can1357/oh-my-pi) coding agent. It reads your local omp sessions and gives you a browser workspace to chat with the agent, browse projects, manage settings, and preview files.
 
-![omploom — live session demo](docs/demo.gif)
-
-<details>
-<summary>Screenshots (light / dark)</summary>
-
 ![omploom — light theme](docs/screenshot-light.png)
-
 ![omploom — dark theme](docs/screenshot-dark.png)
 
-</details>
 
 ## Requirements
 
