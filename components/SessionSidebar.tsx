@@ -12,7 +12,7 @@ import { toast } from "./ui/toast";
 import { clearLastOpenSession, setLastOpenSession, workspaceKeyOf } from "@/lib/workspace-memory";
 import { groupSessionsByProject, projectActivityCounts, sortManagedProjects } from "@/lib/project-ordering";
 import { comparableProjectPath } from "@/lib/comparable-path";
-import { Archive, Check, ChevronRight, FileUp, Plus, RefreshCw, Search, Settings2, SlidersHorizontal } from "lucide-react";
+import { Archive, BarChart3, Check, ChevronRight, FileUp, Plus, RefreshCw, Search, Settings2, SlidersHorizontal } from "lucide-react";
 import { publishSessionsChanged } from "@/lib/session-change-bus";
 import {
   EMPTY_PROJECT_SET,
@@ -65,6 +65,10 @@ interface Props {
   usageVisible?: boolean;
   /** Opens the app settings (pinned sidebar footer row). */
   onOpenSettings?: () => void;
+  /** True when the full-page usage dashboard is open. */
+  usageOpen?: boolean;
+  /** Opens the full-page usage dashboard (pinned footer row). */
+  onOpenUsage?: () => void;
   /** True when an omp/omploom update is available — shows a badge on the gear. */
   updateAvailable?: boolean;
   /** Opens the archived sessions browser. */
@@ -78,7 +82,7 @@ interface Props {
 
 
 
-export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, optimisticSession, onSelectSession, onNewSession, initialSessionId, skipInitialProjectSelection, onInitialRestoreDone, refreshKey, onSessionDeleted, selectedCwd: selectedCwdProp, onCwdChange, onWorkspaceOptionsChange, addProjectOpen, setAddProjectOpen, usageVisible = true, onOpenSettings, onOpenArchive, updateAvailable, settingsOpen = false }: Props) {
+export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, optimisticSession, onSelectSession, onNewSession, initialSessionId, skipInitialProjectSelection, onInitialRestoreDone, refreshKey, onSessionDeleted, selectedCwd: selectedCwdProp, onCwdChange, onWorkspaceOptionsChange, addProjectOpen, setAddProjectOpen, usageVisible = true, onOpenSettings, onOpenArchive, updateAvailable, settingsOpen = false, usageOpen = false, onOpenUsage }: Props) {
 
 
   const { t } = useI18n();
@@ -1428,8 +1432,41 @@ export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, 
 
       {/* Provider usage bar — pinned above Settings */}
       {usageVisible && <ProviderUsageBar />}
-      {/* Pinned footer: Settings */}
+      {/* Pinned footer: Usage | Settings */}
       <div style={{ borderTop: "1px solid var(--border)", flexShrink: 0 }}>
+        {onOpenUsage && (
+          <button
+            className="sidebar-settings-row"
+            data-active={usageOpen}
+            onClick={onOpenUsage}
+            title={t("usageStats.title")}
+            aria-label={t("usageStats.title")}
+            style={{
+              width: "100%",
+              height: 36,
+              boxSizing: "border-box",
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              padding: "0 12px",
+              background: usageOpen ? "var(--bg-selected)" : "none",
+              border: "none",
+              color: usageOpen ? "var(--text)" : "var(--text-muted)",
+              cursor: "pointer",
+              textAlign: "left",
+              transition: SIDEBAR_BUTTON_TRANSITION,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = usageOpen ? "var(--bg-selected)" : "var(--bg-hover)"; e.currentTarget.style.color = "var(--text)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = usageOpen ? "var(--bg-selected)" : "none"; e.currentTarget.style.color = usageOpen ? "var(--text)" : "var(--text-muted)"; }}
+          >
+            <span style={{ display: "inline-flex", flexShrink: 0, color: "var(--accent)" }}>
+              <BarChart3 size={14} strokeWidth={2} aria-hidden="true" />
+            </span>
+            <span style={{ fontSize: 12, fontWeight: usageOpen ? 600 : 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {t("usageStats.title")}
+            </span>
+          </button>
+        )}
         <button
           className="sidebar-settings-row"
           data-active={settingsOpen}

@@ -1056,6 +1056,89 @@ declare global {
  * changed must therefore also call invalidateSessionFileListCache(). */
 export function invalidateSessionFileListCache(): void {
   globalThis.__ompSessionFileListCache?.clear();
+  globalThis.__ompSessionTranscriptListCache?.clear();
+}
+
+// ============================================================================
+// Full transcript walk (usage accounting)
+// ============================================================================
+
+/**
+ * Which agent produced a transcript. Mirrors omp's own classification so the
+ * usage numbers line up with `omp stats`:
+ * `<sessionsRoot>/<project>/<file>.jsonl` is a `main` session; everything
+ * nested deeper lives in a session's artifacts directory and is either an
+ * `advisor` transcript (`__advisor.jsonl` / `__advisor.<slug>.jsonl`) or a
+ * task `subagent`.
+ */
+export type TranscriptAgent = "main" | "subagent" | "advisor";
+
+export const ADVISOR_TRANSCRIPT_BASENAME = "__advisor.jsonl";
+
+export function classifyTranscriptAgent(sessionsRoot: string, filePath: string): TranscriptAgent {
+  const base = path.basename(filePath);
+  if (base === ADVISOR_TRANSCRIPT_BASENAME || (base.startsWith("__advisor.") && base.endsWith(".jsonl"))) {
+    return "advisor";
+  }
+  const segments = path.relative(sessionsRoot, filePath).split(path.sep).filter(Boolean);
+  return segments.length <= 2 ? "main" : "subagent";
+}
+
+/** Deepest artifacts nesting we will walk; subagent-of-subagent is 4. */
+const MAX_TRANSCRIPT_DEPTH = 6;
+
+function collectTranscripts(dir: string, depth: number, out: string[]): void {
+  if (depth > MAX_TRANSCRIPT_DEPTH) return;
+  let entries: Dirent[];
+  try {
+    entries = readDirectorySyncRuntime(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      collectTranscripts(entryPath, depth + 1, out);
+    } else if (entry.isFile() && entry.name.endsWith(".jsonl")) {
+      out.push(entryPath);
+    }
+  }
+}
+
+interface SessionTranscriptListCacheEntry {
+  files: string[];
+  cachedAt: number;
+}
+
+declare global {
+  var __ompSessionTranscriptListCache: Map<string, SessionTranscriptListCacheEntry> | undefined;
+}
+
+/** Discovery TTL for NEW transcripts. Same Windows/NTFS trap as the session
+ * list: a file created inside an artifacts directory does not bump the
+ * sessions-root mtime, so an unbounded cache would never see it. Bounded by
+ * time instead of by mtime sampling (the artifacts tree is too wide to stat
+ * on every call — ~1.4k directories on a busy machine). */
+const TRANSCRIPT_LIST_TTL_MS = 15_000;
+
+/**
+ * Every transcript under the sessions root: main sessions AND the nested
+ * subagent/advisor transcripts that carry their own token usage. Usage
+ * accounting must use this — `listSessionFiles` intentionally lists only
+ * top-level sessions for the sidebar.
+ */
+export async function listSessionTranscripts(sessionsRoot: string): Promise<string[]> {
+  if (!globalThis.__ompSessionTranscriptListCache) globalThis.__ompSessionTranscriptListCache = new Map();
+  const cache = globalThis.__ompSessionTranscriptListCache;
+  const cached = cache.get(sessionsRoot);
+  if (cached && Date.now() - cached.cachedAt < TRANSCRIPT_LIST_TTL_MS) {
+    return cached.files;
+  }
+  const files: string[] = [];
+  collectTranscripts(sessionsRoot, 1, files);
+  files.sort();
+  cache.set(sessionsRoot, { files, cachedAt: Date.now() });
+  return files;
 }
 
 export async function listSessionFiles(sessionsRoot: string): Promise<string[]> {

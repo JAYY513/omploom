@@ -1,4 +1,4 @@
-import { existsSync, realpathSync, statSync } from "fs";
+import { existsSync, readdirSync, realpathSync, statSync } from "fs";
 import { homedir, tmpdir } from "os";
 import * as path from "path";
 
@@ -7,9 +7,13 @@ import * as path from "path";
  * omp-loom cannot import the Bun-only @oh-my-pi packages, so the layout rules
  * are replicated here. Covered: PI_CODING_AGENT_DIR override, PI_CONFIG_DIR
  * rename, and the XDG data layout (used only when $XDG_DATA_HOME/omp already
- * exists, mirroring omp's opt-in migration). Named profiles
- * (OMP_PROFILE/PI_PROFILE) are intentionally unsupported: omp-loom always
- * resolves the default profile location.
+ * exists, mirroring omp's opt-in migration).
+ *
+ * Named profiles (OMP_PROFILE/PI_PROFILE) are not part of the app's own state
+ * root — omp-loom browses the default profile — but they ARE part of the
+ * machine's usage history: `omp --profile work` writes to its own isolated
+ * tree, and usage accounting aggregates every profile
+ * (see listUsageSessionRoots).
  */
 
 const APP_NAME = "omp";
@@ -167,4 +171,87 @@ export function getProjectAgentsDir(cwd: string): string {
 /** Cache directory for unpacked bundled agents (temp). */
 export function getAgentsBundledCacheDir(): string {
   return path.join(tmpdir(), "omp-loom-bundled-agents");
+}
+
+// ============================================================================
+// Named profiles (usage accounting)
+// ============================================================================
+
+const PROFILE_NAME_RE = /^[A-Za-z0-9._-]{1,64}$/;
+
+/** XDG data root for a NAMED profile, or undefined when XDG does not apply.
+ * omp pins a profile's location at first activation: the profile-specific XDG
+ * path wins only when it already exists (mirroring DirResolver), so a migrated
+ * profile is never double-counted from both locations. */
+function xdgProfileDataRoot(profile: string): string | undefined {
+  if (process.platform !== "linux" && process.platform !== "darwin") return undefined;
+  const value = process.env.XDG_DATA_HOME;
+  if (!value) return undefined;
+  try {
+    const profilePath = path.join(value, APP_NAME, "profiles", profile);
+    return existsSync(profilePath) ? profilePath : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Profile directories found under a config root: `<configRoot>/profiles/*`. */
+export function listProfileNames(configRoot: string = getConfigRoot()): string[] {
+  const bases = [path.join(configRoot, "profiles")];
+  const xdg = process.env.XDG_DATA_HOME;
+  if (xdg && (process.platform === "linux" || process.platform === "darwin")) {
+    bases.push(path.join(xdg, APP_NAME, "profiles"));
+  }
+  const names = new Set<string>();
+  for (const base of bases) {
+    let entries;
+    try {
+      entries = readdirSync(base, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory() && PROFILE_NAME_RE.test(entry.name)) names.add(entry.name);
+    }
+  }
+  return Array.from(names).sort();
+}
+
+/** Session store of one named profile, or undefined when the profile has never
+ * written a session (created but unused, or a stray directory). */
+export function getProfileSessionsDir(
+  profile: string,
+  configRoot: string = getConfigRoot(),
+): string | undefined {
+  const xdgRoot = xdgProfileDataRoot(profile);
+  const candidates = [
+    // XDG flattens the agent/ prefix, exactly like the default profile.
+    ...(xdgRoot ? [path.join(xdgRoot, "sessions")] : []),
+    path.join(configRoot, "profiles", profile, "agent", "sessions"),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return undefined;
+}
+
+export interface UsageSessionRoot {
+  /** "" for the default profile, otherwise the profile name. */
+  profile: string;
+  /** Root of that profile's session tree (walks are recursive from here). */
+  sessionsRoot: string;
+}
+
+/**
+ * Every session store whose usage belongs to this machine: the default profile
+ * (honoring PI_CODING_AGENT_DIR and the XDG layout) plus each named profile
+ * that has sessions on disk.
+ */
+export function listUsageSessionRoots(configRoot: string = getConfigRoot()): UsageSessionRoot[] {
+  const roots: UsageSessionRoot[] = [{ profile: "", sessionsRoot: getSessionsDir() }];
+  for (const profile of listProfileNames(configRoot)) {
+    const sessionsRoot = getProfileSessionsDir(profile, configRoot);
+    if (sessionsRoot) roots.push({ profile, sessionsRoot });
+  }
+  return roots;
 }

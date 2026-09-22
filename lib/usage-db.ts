@@ -2,16 +2,17 @@ import { existsSync, mkdirSync, statSync } from "fs";
 import { DatabaseSync } from "node:sqlite";
 import { basename, dirname, join } from "path";
 import { readModelsConfig, type ModelsFileConfig } from "./omp/models-config";
-import { getAgentDir, getSessionsDir } from "./omp/paths";
-import { listSessionFiles } from "./omp/session-files";
+import { getAgentDir, listUsageSessionRoots, type UsageSessionRoot } from "./omp/paths";
+import { classifyTranscriptAgent, listSessionTranscripts } from "./omp/session-files";
 import {
   formatChartDateLabel,
   formatFullDateLabel,
-  parseSessionUsage,
+  parseTranscriptUsage,
   toLocalDateString,
   toLocalMonthString,
   computeTimeRangeBounds,
 } from "./usage-service";
+import { computeStreaks, HEATMAP_WEEKS, toLocalDayKey } from "./usage-metrics";
 import { getProviderColor, getProviderDisplayName } from "./usage-rates";
 import type {
   DayUsageSummary,
@@ -19,9 +20,12 @@ import type {
   ProjectUsageSummary,
   ProviderUsageSummary,
   TimeSeriesPoint,
+  UsageActivityPoint,
+  UsageAgentKind,
+  UsageOverview,
   UsageQueryOptions,
-  UsageRecord,
   UsageReport,
+  UsageSessionStat,
   UsageSummary,
 } from "./usage-types";
 
@@ -93,18 +97,130 @@ export function getUsageDatabase(customPath?: string): DatabaseSync {
       total_tokens INTEGER NOT NULL,
       cost REAL NOT NULL,
       cache_savings REAL NOT NULL,
-      cost_quality TEXT NOT NULL
+      cost_quality TEXT NOT NULL,
+      agent TEXT NOT NULL DEFAULT 'main',
+      -- omp profile the transcript came from; '' is the default profile.
+      profile TEXT NOT NULL DEFAULT '',
+      duration_ms INTEGER NOT NULL DEFAULT 0,
+      -- Local calendar day of the timestamp column. Materialized at write
+      -- time: the dashboard's day rollups otherwise ran strftime() over every
+      -- row on each request (seconds per call on a six-figure row count).
+      day TEXT NOT NULL DEFAULT ''
     );
 
+
+    -- One row per transcript: main sessions AND nested subagent/advisor
+    -- transcripts, so the dashboard can rank chats and split agent spend.
+    CREATE TABLE IF NOT EXISTS session_stats (
+      file_path TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      session_cwd TEXT NOT NULL,
+      agent TEXT NOT NULL,
+      profile TEXT NOT NULL DEFAULT '',
+      started_at INTEGER NOT NULL,
+      ended_at INTEGER NOT NULL,
+      active_ms INTEGER NOT NULL,
+      model_ms INTEGER NOT NULL,
+      tokens INTEGER NOT NULL,
+      cost REAL NOT NULL,
+      messages INTEGER NOT NULL
+    );
+
+
+    CREATE TABLE IF NOT EXISTS meta (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
+
+  migrateUsageSchema(db);
+
+  // Indexes come after the migrations: an index on a column that only the
+  // migration adds (agent, day) would fail on a database created before it.
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_usage_records_timestamp ON usage_records(timestamp);
     CREATE INDEX IF NOT EXISTS idx_usage_records_file_path ON usage_records(file_path);
     CREATE INDEX IF NOT EXISTS idx_usage_records_provider ON usage_records(provider);
     CREATE INDEX IF NOT EXISTS idx_usage_records_session_cwd ON usage_records(session_cwd);
+    CREATE INDEX IF NOT EXISTS idx_usage_records_agent ON usage_records(agent);
+    CREATE INDEX IF NOT EXISTS idx_usage_records_day ON usage_records(day);
+    CREATE INDEX IF NOT EXISTS idx_usage_records_profile ON usage_records(profile);
+
+    CREATE INDEX IF NOT EXISTS idx_session_stats_agent_active ON session_stats(agent, active_ms DESC);
+    CREATE INDEX IF NOT EXISTS idx_session_stats_ended ON session_stats(ended_at);
   `);
 
   globalThis.__ompUsageDatabase = db;
   globalThis.__ompUsageDatabasePath = targetPath;
   return db;
+}
+
+/**
+ * Bump whenever a change makes already-synced rows WRONG rather than merely
+ * incomplete: the next sync then re-parses every transcript instead of
+ * trusting `synced_files`. Version 1 introduced agent attribution
+ * (main/subagent/advisor) and per-call durations — rows written before it
+ * would otherwise keep the DEFAULT 'main' and silently fold subagent spend
+ * into the parent session. Version 2 added profile attribution ('' = default
+ * profile) so usage from `omp --profile <name>` trees is counted and labelled.
+ */
+const USAGE_SCHEMA_VERSION = 2;
+
+function tableColumns(db: DatabaseSync, table: string): string[] {
+  return (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map((row) => row.name);
+}
+
+/** Bring an existing usage database up to date in place. */
+function migrateUsageSchema(db: DatabaseSync): void {
+  const columns = tableColumns(db, "usage_records");
+  let addedColumn = false;
+  if (!columns.includes("agent")) {
+    db.exec("ALTER TABLE usage_records ADD COLUMN agent TEXT NOT NULL DEFAULT 'main'");
+    addedColumn = true;
+  }
+  if (!columns.includes("duration_ms")) {
+    db.exec("ALTER TABLE usage_records ADD COLUMN duration_ms INTEGER NOT NULL DEFAULT 0");
+    addedColumn = true;
+  }
+  if (!columns.includes("day")) {
+    db.exec("ALTER TABLE usage_records ADD COLUMN day TEXT NOT NULL DEFAULT ''");
+    addedColumn = true;
+  }
+  if (!columns.includes("profile")) {
+    db.exec("ALTER TABLE usage_records ADD COLUMN profile TEXT NOT NULL DEFAULT ''");
+    addedColumn = true;
+  }
+  const sessionColumns = tableColumns(db, "session_stats");
+  if (!sessionColumns.includes("profile")) {
+    db.exec("ALTER TABLE session_stats ADD COLUMN profile TEXT NOT NULL DEFAULT ''");
+    addedColumn = true;
+  }
+
+  const versionRow = db.prepare("SELECT value FROM meta WHERE key = 'schema_version'").get() as
+    | { value: string }
+    | undefined;
+  const version = versionRow ? Number(versionRow.value) : 0;
+  if (!addedColumn && version >= USAGE_SCHEMA_VERSION) return;
+
+  db.exec("DELETE FROM synced_files; DELETE FROM usage_records; DELETE FROM session_stats;");
+  db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?)").run(
+    String(USAGE_SCHEMA_VERSION),
+  );
+}
+
+/**
+ * True once at least one transcript row exists, i.e. the dashboard can render
+ * something real. A cold database is filled by the background sync instead of
+ * inside the first request.
+ */
+export function hasSyncedUsage(db?: DatabaseSync): boolean {
+  const database = db || getUsageDatabase();
+  try {
+    const row = database.prepare("SELECT COUNT(*) AS c FROM synced_files").get() as { c: number };
+    return (row?.c ?? 0) > 0;
+  } catch {
+    return false;
+  }
 }
 
 /** Close the usage database instance. */
@@ -125,21 +241,50 @@ export interface SyncStats {
   filesUpdated: number;
   filesDeleted: number;
   recordsInserted: number;
+  sessionsWritten: number;
+}
+
+/** Files parsed between event-loop yields during a sync. */
+const SYNC_YIELD_EVERY_FILES = 20;
+
+export interface UsageSyncProgress {
+  processed: number;
+  total: number;
+  file: string;
+}
+
+export interface UsageSyncInput {
+  /** Every store that holds this machine's usage: the default profile plus
+   * named profiles (`omp --profile <name>` writes to an isolated tree). */
+  sources: UsageSessionRoot[];
+  modelsConfig?: ModelsFileConfig;
+  db?: DatabaseSync;
+  onProgress?: (progress: UsageSyncProgress) => void;
 }
 
 /**
- * Incrementally sync all session .jsonl files into the SQLite usage database.
- * Only parses files that are new or whose mtime/size has changed.
+ * Incrementally sync every transcript into SQLite. Only files that are new or
+ * whose (mtime, size) changed are re-parsed; deleted files are purged.
+ *
+ * The walk is recursive on purpose: subagent and advisor transcripts live in
+ * each session's artifacts directory and carry their own model calls, so
+ * skipping them undercounts spend by roughly a sixth on a subagent-heavy
+ * history.
  */
-export function syncSessionFilesToDb(
-  sessionFiles: string[],
-  customModelsConfig: ModelsFileConfig = readModelsConfig(),
-  customDb?: DatabaseSync,
-): SyncStats {
-  const db = customDb || getUsageDatabase();
+export async function syncUsageFiles(input: UsageSyncInput): Promise<SyncStats> {
+  const db = input.db || getUsageDatabase();
+  const modelsConfig = input.modelsConfig ?? readModelsConfig();
   const now = Date.now();
 
-  // 1. Fetch currently synced files from SQLite
+  // Collect every transcript up front so progress can be reported against the
+  // real total (each profile root is walked independently).
+  const jobs: Array<{ filePath: string; sessionsRoot: string; profile: string }> = [];
+  for (const source of input.sources) {
+    for (const filePath of await listSessionTranscripts(source.sessionsRoot)) {
+      jobs.push({ filePath, sessionsRoot: source.sessionsRoot, profile: source.profile });
+    }
+  }
+
   const syncedRows = db.prepare("SELECT file_path, mtime_ms, file_size FROM synced_files").all() as Array<{
     file_path: string;
     mtime_ms: number;
@@ -151,75 +296,136 @@ export function syncSessionFilesToDb(
     syncedMap.set(row.file_path, { mtime_ms: row.mtime_ms, file_size: row.file_size });
   }
 
-  let filesUpdated = 0;
-  let recordsInserted = 0;
-
   const insertRecordStmt = db.prepare(`
     INSERT INTO usage_records (
       file_path, session_id, session_cwd, timestamp, provider, model,
       input_tokens, output_tokens, reasoning_tokens, cache_read_tokens,
-      cache_write_tokens, total_tokens, cost, cache_savings, cost_quality
+      cache_write_tokens, total_tokens, cost, cache_savings, cost_quality,
+      agent, profile, duration_ms, day
     ) VALUES (
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?,
-      ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?,
+      ?, ?, ?, ?
     )
   `);
-
+  const insertSessionStmt = db.prepare(`
+    INSERT OR REPLACE INTO session_stats (
+      file_path, session_id, session_cwd, agent, profile, started_at, ended_at,
+      active_ms, model_ms, tokens, cost, messages
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
   const deleteRecordsStmt = db.prepare("DELETE FROM usage_records WHERE file_path = ?");
+  const deleteSessionStmt = db.prepare("DELETE FROM session_stats WHERE file_path = ?");
+  const deleteSyncedStmt = db.prepare("DELETE FROM synced_files WHERE file_path = ?");
   const upsertSyncedFileStmt = db.prepare(`
     INSERT OR REPLACE INTO synced_files (file_path, mtime_ms, file_size, records_count, synced_at)
     VALUES (?, ?, ?, ?, ?)
   `);
 
+  let filesUpdated = 0;
+  let recordsInserted = 0;
+  let sessionsWritten = 0;
+  let processed = 0;
   const currentFilesSet = new Set<string>();
 
-  // 2. Incremental sync for new / modified files
-  for (const filePath of sessionFiles) {
-    let stats;
-    try {
-      stats = statSync(filePath);
-      if (!stats.isFile() || stats.size === 0) continue;
-    } catch {
-      continue;
-    }
-    currentFilesSet.add(filePath);
-    const existing = syncedMap.get(filePath);
-    if (existing && existing.mtime_ms === stats.mtimeMs && existing.file_size === stats.size) {
-      // File has not changed since last sync
-      continue;
-    }
-
-    // Parse records from disk
-    const records: UsageRecord[] = parseSessionUsage(filePath, customModelsConfig);
-
-    // Save in transaction
+  const purgeFile = (filePath: string): void => {
     db.exec("BEGIN TRANSACTION;");
     try {
       deleteRecordsStmt.run(filePath);
+      deleteSessionStmt.run(filePath);
+      deleteSyncedStmt.run(filePath);
+      db.exec("COMMIT;");
+    } catch (err) {
+      db.exec("ROLLBACK;");
+      throw err;
+    }
+  };
 
-      for (const r of records) {
+  for (const job of jobs) {
+    const { filePath, sessionsRoot, profile } = job;
+    processed += 1;
+    // Parsing is synchronous and a cold history is gigabytes of JSONL: yield
+    // between batches so a background sync cannot stall the whole server
+    // (progress reporting and every other request ride the same event loop).
+    if (processed % SYNC_YIELD_EVERY_FILES === 0) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+
+    let stats;
+    try {
+      stats = statSync(filePath);
+      if (!stats.isFile() || stats.size === 0) {
+        // A truncated/emptied transcript must drop its rows, not keep them.
+        if (syncedMap.has(filePath)) {
+          purgeFile(filePath);
+          filesUpdated += 1;
+        }
+        continue;
+      }
+    } catch {
+      continue;
+    }
+
+    currentFilesSet.add(filePath);
+    input.onProgress?.({ processed, total: jobs.length, file: filePath });
+
+    const existing = syncedMap.get(filePath);
+    if (existing && existing.mtime_ms === stats.mtimeMs && existing.file_size === stats.size) {
+      continue;
+    }
+
+    const agent = classifyTranscriptAgent(sessionsRoot, filePath);
+    const parsed = parseTranscriptUsage(filePath, agent, modelsConfig, profile);
+
+    db.exec("BEGIN TRANSACTION;");
+    try {
+      deleteRecordsStmt.run(filePath);
+      deleteSessionStmt.run(filePath);
+
+      for (const record of parsed.records) {
         insertRecordStmt.run(
           filePath,
-          r.sessionId,
-          r.sessionCwd,
-          r.timestamp,
-          r.provider,
-          r.model,
-          r.input,
-          r.output,
-          r.reasoning,
-          r.cacheRead,
-          r.cacheWrite,
-          r.totalTokens,
-          r.cost,
-          r.cacheSavings,
-          r.costQuality,
+          record.sessionId,
+          record.sessionCwd,
+          record.timestamp,
+          record.provider,
+          record.model,
+          record.input,
+          record.output,
+          record.reasoning,
+          record.cacheRead,
+          record.cacheWrite,
+          record.totalTokens,
+          record.cost,
+          record.cacheSavings,
+          record.costQuality,
+          record.agent,
+          record.profile,
+          record.durationMs,
+          toLocalDayKey(record.timestamp),
         );
         recordsInserted++;
       }
 
-      upsertSyncedFileStmt.run(filePath, stats.mtimeMs, stats.size, records.length, now);
+      const stat = parsed.stat;
+      insertSessionStmt.run(
+        filePath,
+        stat.sessionId,
+        stat.sessionCwd,
+        stat.agent,
+        stat.profile,
+        stat.startedAt,
+        stat.endedAt,
+        stat.activeMs,
+        stat.modelMs,
+        stat.tokens,
+        stat.cost,
+        stat.messages,
+      );
+      sessionsWritten++;
+
+      upsertSyncedFileStmt.run(filePath, stats.mtimeMs, stats.size, parsed.records.length, now);
       db.exec("COMMIT;");
       filesUpdated++;
     } catch (err) {
@@ -228,30 +434,159 @@ export function syncSessionFilesToDb(
     }
   }
 
-  // 3. Purge deleted session files
+  // Purge transcripts that disappeared from the tree.
   let filesDeleted = 0;
-  const deleteSyncedFileStmt = db.prepare("DELETE FROM synced_files WHERE file_path = ?");
-
   for (const filePath of syncedMap.keys()) {
-    if (!currentFilesSet.has(filePath) || !existsSync(filePath)) {
-      db.exec("BEGIN TRANSACTION;");
-      try {
-        deleteRecordsStmt.run(filePath);
-        deleteSyncedFileStmt.run(filePath);
-        db.exec("COMMIT;");
-        filesDeleted++;
-      } catch (err) {
-        db.exec("ROLLBACK;");
-        throw err;
-      }
-    }
+    if (currentFilesSet.has(filePath) && existsSync(filePath)) continue;
+    purgeFile(filePath);
+    filesDeleted++;
   }
 
   return {
-    filesScanned: sessionFiles.length,
+    filesScanned: jobs.length,
     filesUpdated,
     filesDeleted,
     recordsInserted,
+    sessionsWritten,
+  };
+}
+
+/**
+ * All-time headline block for the usage dashboard. Range-independent by
+ * design: the hero row, streaks and the heatmap window always describe the
+ * whole history, while the trend/model cards follow the selected range.
+ */
+export function buildUsageOverview(db: DatabaseSync, now = Date.now()): UsageOverview {
+  const totals = db
+    .prepare(
+      `SELECT COALESCE(SUM(total_tokens), 0) AS tokens,
+              COALESCE(SUM(cost), 0) AS cost,
+              COUNT(*) AS requests,
+              COALESCE(SUM(CASE WHEN cost_quality = 'unpriced' THEN total_tokens ELSE 0 END), 0) AS unpricedTokens
+       FROM usage_records`,
+    )
+    .get() as { tokens: number; cost: number; requests: number; unpricedTokens: number };
+
+  const byAgent = db
+    .prepare(
+      `SELECT agent,
+              COALESCE(SUM(total_tokens), 0) AS tokens,
+              COALESCE(SUM(cost), 0) AS cost,
+              COUNT(*) AS requests
+       FROM usage_records
+       GROUP BY agent
+       ORDER BY tokens DESC`,
+    )
+    .all() as Array<{ agent: UsageAgentKind; tokens: number; cost: number; requests: number }>;
+
+  // One entry per omp profile that has usage ('' = default profile).
+  const byProfile = db
+    .prepare(
+      `SELECT profile,
+              COALESCE(SUM(total_tokens), 0) AS tokens,
+              COALESCE(SUM(cost), 0) AS cost,
+              COUNT(*) AS requests
+       FROM usage_records
+       GROUP BY profile
+       ORDER BY tokens DESC`,
+    )
+    .all() as Array<{ profile: string; tokens: number; cost: number; requests: number }>;
+
+  // Heatmap window: 53 week-columns ending in the current week.
+  const today = new Date(now);
+  const lastColumnStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+  const firstColumnStart = new Date(lastColumnStart.getTime() - (HEATMAP_WEEKS - 1) * 7 * 86400000);
+
+  const activity = db
+    .prepare(
+      `SELECT day,
+              COALESCE(SUM(total_tokens), 0) AS tokens,
+              COALESCE(SUM(cost), 0) AS cost,
+              COUNT(*) AS requests
+       FROM usage_records
+       WHERE timestamp >= ?
+       GROUP BY day
+       ORDER BY day ASC`,
+    )
+    .all(firstColumnStart.getTime()) as unknown as UsageActivityPoint[];
+
+  const dayRows = db
+    .prepare(
+      `SELECT DISTINCT day FROM usage_records ORDER BY day ASC`,
+    )
+    .all() as Array<{ day: string }>;
+  const activeDays = dayRows.length;
+  const streakSummary = computeStreaks(dayRows.map((row) => row.day), now);
+
+  const peakRow = db
+    .prepare(
+      `SELECT day,
+              COALESCE(SUM(total_tokens), 0) AS tokens,
+              COALESCE(SUM(cost), 0) AS cost,
+              COUNT(*) AS requests
+       FROM usage_records
+       GROUP BY day
+       ORDER BY tokens DESC
+       LIMIT 1`,
+    )
+    .get() as UsageActivityPoint | undefined;
+
+  // Longest CHAT: subagent transcripts are not conversations, so they are out
+  // of the running even though their tokens count everywhere else.
+  const longestRow = db
+    .prepare(
+      `SELECT session_id, session_cwd, agent, profile, started_at, ended_at, active_ms,
+              model_ms, tokens, cost, messages
+       FROM session_stats
+       WHERE agent = 'main'
+       ORDER BY active_ms DESC
+       LIMIT 1`,
+    )
+    .get() as
+    | {
+        session_id: string;
+        session_cwd: string;
+        agent: UsageAgentKind;
+        profile: string;
+        started_at: number;
+        ended_at: number;
+        active_ms: number;
+        model_ms: number;
+        tokens: number;
+        cost: number;
+        messages: number;
+      }
+    | undefined;
+
+  const longestSession: UsageSessionStat | null = longestRow
+    ? {
+        sessionId: longestRow.session_id,
+        sessionCwd: longestRow.session_cwd,
+        agent: longestRow.agent,
+        profile: longestRow.profile,
+        startedAt: longestRow.started_at,
+        endedAt: longestRow.ended_at,
+        activeMs: longestRow.active_ms,
+        modelMs: longestRow.model_ms,
+        tokens: longestRow.tokens,
+        cost: longestRow.cost,
+        messages: longestRow.messages,
+      }
+    : null;
+
+  return {
+    generatedAt: now,
+    totalTokens: totals.tokens,
+    totalCost: totals.cost,
+    totalRequests: totals.requests,
+    unpricedTokens: totals.unpricedTokens,
+    activeDays,
+    peakDay: peakRow && peakRow.tokens > 0 ? peakRow : null,
+    longestSession,
+    streaks: { currentDays: streakSummary.current, longestDays: streakSummary.longest },
+    byAgent,
+    byProfile,
+    activity,
   };
 }
 
@@ -270,16 +605,19 @@ export async function getUsageReportFromDb(
   const db = customDb || getUsageDatabase();
   if (options.forceRefresh) {
     try {
-      db.exec("DELETE FROM synced_files; DELETE FROM usage_records;");
+      db.exec("DELETE FROM synced_files; DELETE FROM usage_records; DELETE FROM session_stats;");
     } catch {
       // Ignore
     }
   }
 
-  // Sync latest sessions from disk before querying
-  const sessionsDir = getSessionsDir();
-  const sessionFiles = existsSync(sessionsDir) ? await listSessionFiles(sessionsDir) : [];
-  syncSessionFilesToDb(sessionFiles, readModelsConfig(), db);
+  // Sync latest transcripts from disk before querying (main sessions plus the
+  // nested subagent/advisor transcripts that carry their own usage, across the
+  // default profile and every named profile). Skipped while a background sync
+  // owns the job — the caller is then polling.
+  if (!options.skipSync) {
+    await syncUsageFiles({ sources: listUsageSessionRoots(), modelsConfig: readModelsConfig(), db });
+  }
   const hasExplicitBounds =
     typeof options.from === "number" &&
     typeof options.to === "number" &&
@@ -312,7 +650,7 @@ export async function getUsageReportFromDb(
         COALESCE(SUM(cache_read_tokens), 0) AS cacheReadTokens,
         COALESCE(SUM(cache_write_tokens), 0) AS cacheWriteTokens,
         COALESCE(SUM(cache_savings), 0) AS cacheSavings,
-        COUNT(DISTINCT strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch', 'localtime')) AS activeDays,
+        COUNT(DISTINCT day) AS activeDays,
         SUM(CASE WHEN cost_quality = 'provider_reported' THEN 1 ELSE 0 END) AS providerReportedCount,
         SUM(CASE WHEN cost_quality = 'model_priced' THEN 1 ELSE 0 END) AS modelPricedCount,
         SUM(CASE WHEN cost_quality = 'unpriced' THEN 1 ELSE 0 END) AS unpricedCount
@@ -393,13 +731,17 @@ export async function getUsageReportFromDb(
 
   // 3. Time Series Query
   const isMonthly = granularity === "monthly";
-  const strftimeFormat = isMonthly ? "%Y-%m" : "%Y-%m-%d";
+  // Daily buckets read the materialized `day` column; months still derive from
+  // the timestamp (a month is 30x rarer than a day and needs no extra column).
+  const bucketExpr = isMonthly
+    ? "strftime('%Y-%m', timestamp / 1000, 'unixepoch', 'localtime')"
+    : "day";
 
   const timeSeriesRows = db
     .prepare(
       `
       SELECT
-        strftime('${strftimeFormat}', timestamp / 1000, 'unixepoch', 'localtime') AS bucketDate,
+        ${bucketExpr} AS bucketDate,
         provider,
         MIN(timestamp) AS minTimestamp,
         COALESCE(SUM(cost), 0) AS cost,
@@ -559,7 +901,7 @@ export async function getUsageReportFromDb(
     .prepare(
       `
       SELECT
-        strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch', 'localtime') AS date,
+        day AS date,
         COALESCE(SUM(cost), 0) AS cost,
         COALESCE(SUM(total_tokens), 0) AS tokens,
         COALESCE(SUM(input_tokens), 0) AS inputTokens,
@@ -639,10 +981,11 @@ export async function getUsageReportFromDb(
     )
     .get(...params) as { c: number };
 
-  const transcriptsScanned = totalSyncedRow?.c ?? sessionFiles.length;
+  const transcriptsScanned = totalSyncedRow?.c ?? 0;
   const transcriptsInWindow = inWindowSyncedRow?.c ?? 0;
   const transcriptsOutsideWindow = Math.max(0, transcriptsScanned - transcriptsInWindow);
   const durationSeconds = Math.max(0.001, (Date.now() - startTime) / 1000);
+  const overview = buildUsageOverview(db, startTime);
 
   return {
     timeRange,
@@ -653,6 +996,7 @@ export async function getUsageReportFromDb(
     modelBreakdown,
     dayBreakdown,
     projectBreakdown,
+    overview,
     scanInfo: {
       transcriptsScanned,
       transcriptsOutsideWindow,

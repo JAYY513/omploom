@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Command } from "cmdk";
-import { Check, MessageSquare, Monitor, Moon, Plus, Sparkles, Sun } from "lucide-react";
+import { BarChart3, Check, MessageSquare, Monitor, Moon, Plus, Sparkles, Sun } from "lucide-react";
 import type { SessionInfo } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
 import { ALL_THEMES, useTheme } from "@/hooks/useTheme";
@@ -11,6 +11,8 @@ import { ALL_THEMES, useTheme } from "@/hooks/useTheme";
 type Props = {
   onSelectSession: (session: SessionInfo) => void;
   onNewSession: () => void;
+  /** Opens the full-page usage dashboard. */
+  onOpenUsage?: () => void;
   currentModel?: string | null;
 };
 
@@ -24,7 +26,7 @@ function relativeTime(value: string, locale: string): string {
   return new Intl.RelativeTimeFormat(locale, { numeric: "always" }).format(-Math.floor(hours / 24), "day");
 }
 
-export const CommandPalette = memo(function CommandPalette({ onSelectSession, onNewSession, currentModel }: Props) {
+export const CommandPalette = memo(function CommandPalette({ onSelectSession, onNewSession, onOpenUsage, currentModel }: Props) {
   const { t, locale } = useI18n();
   const { isDark, toggleTheme, setTheme, preference } = useTheme();
   const [open, setOpen] = useState(false);
@@ -99,6 +101,7 @@ export const CommandPalette = memo(function CommandPalette({ onSelectSession, on
           <Command.Group heading={t("commandPalette.actions")}>
             <Command.Item value={t("commandPalette.newSession")} onSelect={() => choose(onNewSession)} style={{ display: "flex", gap: 10, padding: "9px 10px", borderRadius: "var(--radius-control)", color: "var(--text)", cursor: "pointer" }}><Plus size={15} color="var(--accent)" />{t("commandPalette.newSession")}</Command.Item>
             <Command.Item value={t("commandPalette.toggleTheme")} onSelect={() => choose(toggleTheme)} style={{ display: "flex", gap: 10, padding: "9px 10px", borderRadius: "var(--radius-control)", color: "var(--text)", cursor: "pointer" }}>{isDark ? <Sun size={15} color="var(--accent)" /> : <Moon size={15} color="var(--accent)" />}{t("commandPalette.toggleTheme")}</Command.Item>
+            {onOpenUsage && <Command.Item value={t("usageStats.title")} onSelect={() => choose(onOpenUsage)} style={{ display: "flex", gap: 10, padding: "9px 10px", borderRadius: "var(--radius-control)", color: "var(--text)", cursor: "pointer" }}><BarChart3 size={15} color="var(--accent)" />{t("usageStats.title")}</Command.Item>}
           </Command.Group>
           <Command.Group heading={t("commandPalette.themes") || "Themes"}>
             {ALL_THEMES.map((theme) => (

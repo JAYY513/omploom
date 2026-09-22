@@ -28,12 +28,19 @@ test("message Markdown copy preserves source, excludes activity, and confirms su
   let clipboard = "";
   const originalMatchMedia = window.matchMedia;
   window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
+  // The "Copied" label reverts after 1500 ms. Under a loaded test run an
+  // awaited act() can outlast that window, so pin the revert timer shut for
+  // the assertion: this test is about the label flipping ON, not off.
+  const originalSetTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = (handler, delay, ...args) =>
+    delay >= 1500 ? 0 : originalSetTimeout(handler, delay, ...args);
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
     value: { writeText: async (text) => { clipboard = text; } },
   });
   t.after(() => {
     delete navigator.clipboard;
+    globalThis.setTimeout = originalSetTimeout;
     if (originalMatchMedia) window.matchMedia = originalMatchMedia;
     else delete window.matchMedia;
   });

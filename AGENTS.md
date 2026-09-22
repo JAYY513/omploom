@@ -77,6 +77,8 @@ app/api/
   mcp/route.ts                    GET/POST/PUT/DELETE project MCP servers
   plugins/route.ts                GET/POST plugin management (shells out to `omp plugin`)
   projects/route.ts               GET registered+discovered projects | POST add | DELETE hide
+  usage/route.ts                  GET usage report + sync progress (all workspaces)
+  usage/sync/route.ts             GET progress | POST start background sync
   skills/route.ts                 GET/PATCH loaded skills and disable-model-invocation
   skills/install/route.ts         POST install skills through npx skills add
   skills/search/route.ts          GET/POST skills.sh search
@@ -95,6 +97,11 @@ lib/
   project-registry.ts  on-disk managed-project registry (~/.omp/agent/projects.json)
   rpc-manager.ts       session registry + startRpcSession over RpcProcess
   session-reader.ts    session .jsonl parsing + path cache + buildSessionContext
+  usage-metrics.ts     pure usage derivations (heatmap buckets, streaks, peak, durations)
+  usage-service.ts     transcript usage parsing (per-file memo) + report entry point
+  usage-db.ts          SQLite usage index (~/.omp/agent/usage.db): schema, sync, aggregates
+  usage-rates.ts       provider/model pricing tables + cost resolution
+  usage-sync.ts        background usage sync job + progress state
   skills-service.ts    pure-Node skill discovery mirroring omp's providers
   tool-presets.ts      PRESET_NONE/DEFAULT/FULL + getToolNamesForPreset()
   types.ts             shared TypeScript types
@@ -112,7 +119,9 @@ components/
   TodoList.tsx        todo phase grid with preview/show-all (used by ComposerPanels)
   SubagentTranscriptDialog.tsx  task + final output summary dialog (wide, screen-adaptive)
   MessageView.tsx     renders one message (user/assistant/toolCall/toolResult)
-  CommandPalette.tsx  ⌘K/Ctrl+K palette (cmdk): session switch, new session, theme
+  CommandPalette.tsx  ⌘K/Ctrl+K palette (cmdk): session switch, new session, theme, usage
+  UsageStats.tsx      full-page usage dashboard (hero stats, activity heatmap, trend, models)
+  UsageConfig.tsx     Settings → Usage analytics panel (cost, cache, breakdowns)
   ImageLightbox.tsx   click-to-preview lightbox for chat images (ClickableImage)
   BranchNavigator.tsx in-session branch switcher
   ChatMinimap.tsx     scroll minimap alongside the message list
@@ -346,6 +355,46 @@ handled or safely ignored.
 - Regression coverage: `components/effects/effects.test.mjs` (SSR lattice, marks,
   `formatLatticeTime`, stubbed-interval stopwatch), `hooks/useRunClock.test.mjs`
   (anchor/linger/abort) and `components/ChatInput.test.mjs` (row + done beat).
+
+### Usage statistics (`lib/usage-*.ts`, `components/UsageStats.tsx`)
+- **Every omp run is the source.** omp appends per-message `usage` to
+  `~/.omp/agent/sessions/<cwd-slug>/*.jsonl` regardless of frontend, so totals
+  are machine-wide and multi-workspace by construction; no omp plugin is
+  involved and no provider API is queried.
+- **Named profiles count too.** `omp --profile <name>` writes to an isolated
+  tree (`~/.omp/profiles/<name>/agent`, or the profile-specific XDG path when
+  it exists — omp pins a profile's location at first activation).
+  `listUsageSessionRoots()` (`lib/omp/paths.ts`) enumerates the default profile
+  plus every profile that has sessions, the sync tags each row with its
+  profile, and the dashboard only shows a profile split when more than one has
+  usage. Loom's own state root stays the default profile.
+- **Walk the tree recursively.** `listSessionTranscripts()` (in
+  `lib/omp/session-files.ts`) collects nested `<session>/<AgentName>.jsonl`
+  artifacts too — subagent and advisor transcripts carry their own model calls
+  and are ~16% of a subagent-heavy history. `listSessionFiles()` stays
+  top-level-only for the sidebar; do not swap them.
+- **Subagent usage is counted ONCE, from the subagent's own transcript.**
+  `parseTranscriptUsage()` reads assistant `message` entries and auxiliary
+  `model_usage` entries (judge/auto-thinking/titles); it deliberately ignores
+  `task` toolResult `details.results[].usage` snapshots, which only cover ~9%
+  of subagent spend and would double count against the nested transcripts.
+- **Index in SQLite, aggregate in SQL.** `~/.omp/agent/usage.db` holds
+  `usage_records` (agent, duration_ms, and a materialized local `day` column),
+  `session_stats` (one row per transcript: span, idle-pruned `active_ms`,
+  model time, tokens) and `synced_files` (mtime+size incremental sync). The
+  `day` column exists because per-row `strftime()` day rollups cost seconds per
+  request; `USAGE_SCHEMA_VERSION` bumps force a full re-parse when old rows
+  would be wrong rather than merely incomplete. Create indexes AFTER the
+  column migrations — an index on a migration-added column fails on old DBs.
+- **A cold history never blocks a request.** `startUsageSync()`
+  (`lib/usage-sync.ts`) parses in the background, yielding to the event loop
+  every 20 files; `/api/usage` reports `sync` progress and the dashboard polls
+  sequentially. First sync of a 3.7 GB / 3k-transcript history is ~50 s; warm
+  incremental syncs are sub-second.
+- **The hero row, heatmap and streaks are all-time; the trend and model cards
+  follow the 7d/30d/all toggle** (`overview` vs the range-scoped report fields).
+  The model card sorts by tokens or cost via a toggle, and its bars always draw
+  the active metric — never a cost-ordered list under token-sized bars.
 
 ### Notification micro-interactions (`components/effects/SwipeToast.tsx`, `FuseButton.tsx`, `BellToggle.tsx`, `CallChip.tsx`)
 - **SwipeToast owns a notice's lifetime.** `NoticeShelf` (`ChatWindow.tsx`) renders

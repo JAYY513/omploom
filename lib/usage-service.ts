@@ -1,8 +1,9 @@
 import { statSync } from "fs";
 import { basename } from "path";
-import { readModelsConfig } from "./omp/models-config";
+import { readModelsConfig, type ModelsFileConfig } from "./omp/models-config";
 import { forEachFileLineSync, invalidateSessionFileListCache } from "./omp/session-files";
 import { isRecord } from "./type-guards";
+import { computeActiveSpanMs } from "./usage-metrics";
 import {
   calculateCacheSavings,
   calculateUsageCost,
@@ -10,17 +11,26 @@ import {
 } from "./usage-rates";
 import { getUsageReportFromDb } from "./usage-db";
 import type {
+  UsageAgentKind,
   UsageQueryOptions,
   UsageRecord,
   UsageReport,
+  UsageSessionStat,
   UsageTimeRange,
 } from "./usage-types";
+
+/** Cached parse of ONE transcript, keyed by path + (mtime, size, agent). */
+export interface ParsedTranscript {
+  records: UsageRecord[];
+  stat: UsageSessionStat;
+}
 
 interface SessionUsageCacheEntry {
   mtimeMs: number;
   size: number;
-  records: UsageRecord[];
-  sessionTimestamp: number;
+  agent: UsageAgentKind;
+  profile: string;
+  parsed: ParsedTranscript;
 }
 
 export const MAX_USAGE_CACHE_ENTRIES = 2000;
@@ -40,7 +50,7 @@ function getUsageCache(): Map<string, SessionUsageCacheEntry> {
 }
 
 function estimateUsageEntryBytes(entry: SessionUsageCacheEntry): number {
-  return entry.records.length * 200 + 128;
+  return entry.parsed.records.length * 200 + 128;
 }
 
 function setUsageCacheEntry(filePath: string, entry: SessionUsageCacheEntry): void {
@@ -159,35 +169,162 @@ export function computeTimeRangeBounds(
   }
 }
 
+/** Timestamp for a message entry: message-level first, then entry-level, then
+ * the session header / file mtime as a floor. */
+function messageTimestamp(msgTimestamp: unknown, entryTimestamp: unknown, fallback: number): number {
+  if (typeof msgTimestamp === "number" && Number.isFinite(msgTimestamp) && msgTimestamp > 0) {
+    return msgTimestamp;
+  }
+  if (typeof entryTimestamp === "string") {
+    const parsed = new Date(entryTimestamp).getTime();
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  if (typeof entryTimestamp === "number" && Number.isFinite(entryTimestamp) && entryTimestamp > 0) {
+    return entryTimestamp;
+  }
+  return fallback;
+}
+
+/** Rollup for a transcript that has no model calls yet (or cannot be read). */
+function emptySessionStat(
+  filePath: string,
+  agent: UsageAgentKind,
+  profile: string,
+  at = Date.now(),
+): UsageSessionStat {
+  return {
+    sessionId: basename(filePath, ".jsonl"),
+    sessionCwd: "",
+    agent,
+    profile,
+    startedAt: at,
+    endedAt: at,
+    activeMs: 0,
+    modelMs: 0,
+    tokens: 0,
+    cost: 0,
+    messages: 0,
+  };
+}
+
+/** Lines we decode. Everything else (tool results, attachments, thinking
+ * blobs) is skipped unparsed — that is what keeps a cold sync of several
+ * thousand transcripts to about a minute. */
+const USAGE_LINE_KIND_RE = /"type"\s*:\s*"(message|session|model_change|model_usage)"/;
+
+/** Build one usage row; null when the call recorded no tokens and no cost
+ * (aborted or provider-rejected turns carry all-zero usage). */
+function buildUsageRecord(args: {
+  rawUsage: Record<string, unknown>;
+  provider: string;
+  model: string;
+  timestamp: number;
+  sessionId: string;
+  sessionCwd: string;
+  agent: UsageAgentKind;
+  profile: string;
+  durationMs: number;
+  config: ModelsFileConfig;
+}): UsageRecord | null {
+  const { rawUsage } = args;
+  const input = typeof rawUsage.input === "number" ? rawUsage.input : 0;
+  const output = typeof rawUsage.output === "number" ? rawUsage.output : 0;
+  const reasoning = typeof rawUsage.reasoning === "number"
+    ? rawUsage.reasoning
+    : typeof rawUsage.reasoningTokens === "number"
+      ? rawUsage.reasoningTokens
+      : typeof rawUsage.thoughtTokens === "number"
+        ? rawUsage.thoughtTokens
+        : 0;
+  const cacheRead = typeof rawUsage.cacheRead === "number" ? rawUsage.cacheRead : 0;
+  const cacheWrite = typeof rawUsage.cacheWrite === "number" ? rawUsage.cacheWrite : 0;
+  const totalTokens = typeof rawUsage.totalTokens === "number"
+    ? rawUsage.totalTokens
+    : input + output + cacheRead + cacheWrite;
+
+  const rates = resolveModelRates(args.provider, args.model, args.config);
+  const { cost, quality } = calculateUsageCost(rawUsage, rates);
+  if (totalTokens <= 0 && cost <= 0) return null;
+
+  return {
+    timestamp: args.timestamp,
+    sessionId: args.sessionId,
+    sessionCwd: args.sessionCwd,
+    provider: args.provider,
+    model: args.model,
+    input,
+    output,
+    reasoning,
+    cacheRead,
+    cacheWrite,
+    totalTokens,
+    cost,
+    cacheSavings: calculateCacheSavings(rawUsage, rates),
+    costQuality: quality,
+    agent: args.agent,
+    profile: args.profile,
+    durationMs: args.durationMs,
+  };
+}
+
 /**
- * Parse an individual session .jsonl file and extract all Assistant usage records.
- * Uses mtime + file size cache to avoid disk reading on subsequent requests.
+ * Parse ONE transcript into usage records plus its session rollup.
+ *
+ * `agent` classifies the transcript (main session / task subagent / advisor).
+ * Usage accounting walks the sessions tree recursively, so subagent spend is
+ * counted exactly once — from the subagent's own transcript — instead of being
+ * inferred from the parent session's `task` tool result.
+ *
+ * Both `message` entries and `model_usage` entries count: the latter are the
+ * auxiliary calls omp makes for a session (auto-thinking, judge, titles) and
+ * they are billed the same way.
+ *
+ * Memoized on (path, size, mtimeMs, agent): re-reading an unchanged file
+ * costs one stat.
  */
-export function parseSessionUsage(filePath: string, customModelsConfig = readModelsConfig()): UsageRecord[] {
+export function parseTranscriptUsage(
+  filePath: string,
+  agent: UsageAgentKind = "main",
+  customModelsConfig = readModelsConfig(),
+  profile = "",
+): ParsedTranscript {
   let stats;
   try {
     stats = statSync(filePath);
-    if (!stats.isFile() || stats.size === 0) return [];
+    if (!stats.isFile() || stats.size === 0) {
+      return { records: [], stat: emptySessionStat(filePath, agent, profile) };
+    }
   } catch {
-    return [];
+    return { records: [], stat: emptySessionStat(filePath, agent, profile) };
   }
 
   const cache = getUsageCache();
   const cached = cache.get(filePath);
-  if (cached && cached.mtimeMs === stats.mtimeMs && cached.size === stats.size) {
-    return cached.records;
+  if (
+    cached &&
+    cached.mtimeMs === stats.mtimeMs &&
+    cached.size === stats.size &&
+    cached.agent === agent &&
+    cached.profile === profile
+  ) {
+    return cached.parsed;
   }
 
   let sessionId = basename(filePath, ".jsonl");
   let sessionCwd = "";
-  let sessionTimestamp = stats.mtimeMs;
+  let headerTimestamp = stats.mtimeMs;
   let activeProvider = "";
   let activeModel = "";
   const records: UsageRecord[] = [];
+  const turnTimestamps: number[] = [];
 
   try {
     forEachFileLineSync(filePath, (rawLine) => {
-      if (!rawLine || rawLine.length < 5) return;
+      if (!rawLine || rawLine.length < 20) return;
+      const head = rawLine.length > 160 ? rawLine.slice(0, 160) : rawLine;
+      const kind = USAGE_LINE_KIND_RE.exec(head);
+      if (!kind) return;
+
       let parsed: Record<string, unknown>;
       try {
         parsed = JSON.parse(rawLine);
@@ -196,14 +333,14 @@ export function parseSessionUsage(filePath: string, customModelsConfig = readMod
       }
       if (!isRecord(parsed)) return;
 
-      const type = parsed.type;
+      const type = kind[1];
 
       if (type === "session") {
         if (typeof parsed.id === "string") sessionId = parsed.id;
         if (typeof parsed.cwd === "string") sessionCwd = parsed.cwd;
         if (typeof parsed.timestamp === "string") {
           const t = new Date(parsed.timestamp).getTime();
-          if (!isNaN(t)) sessionTimestamp = t;
+          if (!isNaN(t)) headerTimestamp = t;
         }
         return;
       }
@@ -223,139 +360,97 @@ export function parseSessionUsage(filePath: string, customModelsConfig = readMod
         return;
       }
 
-      if (type === "message" && isRecord(parsed.message)) {
-        const msg = parsed.message;
-        const role = msg.role;
-
-        if (role === "assistant") {
-          const provider = (typeof msg.provider === "string" && msg.provider) ? msg.provider : (activeProvider || "unknown");
-          const model = (typeof msg.model === "string" && msg.model) ? msg.model : (activeModel || "unknown");
-          const rawUsage = isRecord(msg.usage) ? msg.usage : undefined;
-
-          if (rawUsage) {
-            const input = typeof rawUsage.input === "number" ? rawUsage.input : 0;
-            const output = typeof rawUsage.output === "number" ? rawUsage.output : 0;
-            const reasoning = typeof rawUsage.reasoning === "number"
-              ? rawUsage.reasoning
-              : typeof rawUsage.reasoningTokens === "number"
-                ? rawUsage.reasoningTokens
-                : typeof rawUsage.thoughtTokens === "number"
-                  ? rawUsage.thoughtTokens
-                  : 0;
-            const cacheRead = typeof rawUsage.cacheRead === "number" ? rawUsage.cacheRead : 0;
-            const cacheWrite = typeof rawUsage.cacheWrite === "number" ? rawUsage.cacheWrite : 0;
-            const totalTokens = typeof rawUsage.totalTokens === "number"
-              ? rawUsage.totalTokens
-              : input + output + cacheRead + cacheWrite;
-
-            let timestamp = sessionTimestamp;
-            if (typeof msg.timestamp === "number" && !isNaN(msg.timestamp)) {
-              timestamp = msg.timestamp;
-            } else if (typeof parsed.timestamp === "string") {
-              const parsedTime = new Date(parsed.timestamp).getTime();
-              if (!isNaN(parsedTime)) timestamp = parsedTime;
-            }
-
-            const rates = resolveModelRates(provider, model, customModelsConfig);
-            const { cost, quality } = calculateUsageCost(rawUsage, rates);
-            const cacheSavings = calculateCacheSavings(rawUsage, rates);
-
-            if (totalTokens > 0 || cost > 0) {
-              records.push({
-                timestamp,
-                sessionId,
-                sessionCwd,
-                provider,
-                model,
-                input,
-                output,
-                reasoning,
-                cacheRead,
-                cacheWrite,
-                totalTokens,
-                cost,
-                cacheSavings,
-                costQuality: quality,
-              });
-            }
-          }
-        } else if (role === "toolResult" && msg.toolName === "task" && isRecord(msg.details)) {
-          // Subagent task dispatches may carry usage results
-          const results = Array.isArray(msg.details.results) ? msg.details.results : [];
-          for (const res of results) {
-            if (isRecord(res) && isRecord(res.usage)) {
-              const u = res.usage;
-              const subModel = typeof res.resolvedModel === "string"
-                ? res.resolvedModel
-                : typeof res.model === "string"
-                  ? res.model
-                  : activeModel || "unknown";
-              const subProvider = typeof res.provider === "string" && res.provider
-                ? res.provider
-                : subModel.includes("/")
-                  ? subModel.split("/")[0]
-                  : activeProvider || "unknown";
-
-              const input = typeof u.input === "number" ? u.input : 0;
-              const output = typeof u.output === "number" ? u.output : 0;
-              const reasoning = typeof u.reasoning === "number"
-                ? u.reasoning
-                : typeof u.reasoningTokens === "number"
-                  ? u.reasoningTokens
-                  : typeof u.thoughtTokens === "number"
-                    ? u.thoughtTokens
-                    : 0;
-              const cacheRead = typeof u.cacheRead === "number" ? u.cacheRead : 0;
-              const cacheWrite = typeof u.cacheWrite === "number" ? u.cacheWrite : 0;
-              const totalTokens = typeof u.totalTokens === "number" ? u.totalTokens : input + output + cacheRead + cacheWrite;
-
-              let timestamp = sessionTimestamp;
-              if (typeof msg.timestamp === "number" && !isNaN(msg.timestamp)) {
-                timestamp = msg.timestamp;
-              } else if (typeof parsed.timestamp === "string") {
-                const parsedTime = new Date(parsed.timestamp).getTime();
-                if (!isNaN(parsedTime)) timestamp = parsedTime;
-              }
-
-              const rates = resolveModelRates(subProvider, subModel, customModelsConfig);
-              const { cost, quality } = calculateUsageCost(u, rates);
-              const cacheSavings = calculateCacheSavings(u, rates);
-
-              if (totalTokens > 0 || cost > 0) {
-                records.push({
-                  timestamp,
-                  sessionId,
-                  sessionCwd,
-                  provider: subProvider,
-                  model: subModel,
-                  input,
-                  output,
-                  reasoning,
-                  cacheRead,
-                  cacheWrite,
-                  totalTokens,
-                  cost,
-                  cacheSavings,
-                  costQuality: quality,
-                });
-              }
-            }
-          }
-        }
+      if (type === "model_usage") {
+        // Auxiliary call: auto-thinking, judge, titles. Its timestamps stay out
+        // of the chat span (they are not user turns), but its tokens count.
+        const rawUsage = isRecord(parsed.usage) ? parsed.usage : undefined;
+        if (!rawUsage) return;
+        const record = buildUsageRecord({
+          rawUsage,
+          provider: typeof parsed.provider === "string" && parsed.provider ? parsed.provider : (activeProvider || "unknown"),
+          model: typeof parsed.model === "string" && parsed.model ? parsed.model : (activeModel || "unknown"),
+          timestamp: messageTimestamp(parsed.timestamp, undefined, headerTimestamp),
+          sessionId,
+          sessionCwd,
+          agent,
+          profile,
+          durationMs: 0,
+          config: customModelsConfig,
+        });
+        if (record) records.push(record);
+        return;
       }
+
+      if (!isRecord(parsed.message)) return;
+      const msg = parsed.message;
+      const role = msg.role;
+      // User turns bound the conversation; assistant turns carry the model
+      // calls. Tool results are deliberately ignored (bulk + no new turn).
+      if (role !== "assistant" && role !== "user") return;
+
+      const timestamp = messageTimestamp(msg.timestamp, parsed.timestamp, headerTimestamp);
+      turnTimestamps.push(timestamp);
+      if (role !== "assistant") return;
+
+      const rawUsage = isRecord(msg.usage) ? msg.usage : undefined;
+      if (!rawUsage) return;
+
+      const record = buildUsageRecord({
+        rawUsage,
+        provider: (typeof msg.provider === "string" && msg.provider) ? msg.provider : (activeProvider || "unknown"),
+        model: (typeof msg.model === "string" && msg.model) ? msg.model : (activeModel || "unknown"),
+        timestamp,
+        sessionId,
+        sessionCwd,
+        agent,
+        profile,
+        durationMs: typeof msg.duration === "number" && Number.isFinite(msg.duration) && msg.duration > 0
+          ? msg.duration
+          : 0,
+        config: customModelsConfig,
+      });
+      if (record) records.push(record);
     });
   } catch {
     // Return partially collected records on read error
   }
 
+  const tokens = records.reduce((sum, record) => sum + record.totalTokens, 0);
+  const cost = records.reduce((sum, record) => sum + record.cost, 0);
+  const modelMs = records.reduce((sum, record) => sum + record.durationMs, 0);
+  const startedAt = turnTimestamps.length > 0 ? Math.min(...turnTimestamps) : headerTimestamp;
+  const endedAt = turnTimestamps.length > 0 ? Math.max(...turnTimestamps) : headerTimestamp;
+
+  const parsedTranscript: ParsedTranscript = {
+    records,
+    stat: {
+      sessionId,
+      sessionCwd,
+      agent,
+      profile,
+      startedAt,
+      endedAt,
+      // Engaged time, not wall clock: a session left open overnight must not
+      // read as a 60-hour chat.
+      activeMs: computeActiveSpanMs(turnTimestamps.map((timestamp) => ({ timestamp }))),
+      modelMs,
+      tokens,
+      cost,
+      // Conversation turns (user + assistant entries), not model calls: this
+      // is what the "longest chat" card reports next to the duration.
+      messages: turnTimestamps.length,
+    },
+  };
+
   setUsageCacheEntry(filePath, {
     mtimeMs: stats.mtimeMs,
     size: stats.size,
-    records,
-    sessionTimestamp,
+    agent,
+    profile,
+    parsed: parsedTranscript,
   });
 
-  return records;
+  return parsedTranscript;
 }
 
 /**
