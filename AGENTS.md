@@ -298,6 +298,88 @@ handled or safely ignored.
   (`usePrefersReducedMotion` in `hooks/usePrefersReducedMotion.ts` — also the
   only way to stop SVG SMIL animations, which CSS cannot).
 
+### Composer primary action (`components/ChatInput.tsx`, `components/effects/SendGlyph.tsx`)
+- Send, Queue, and Stop are ONE button (`primaryState` → `data-state`), not three
+  branches: the shell must stay mounted across states or the glyph morph and the
+  press transition restart from scratch. `SendGlyph` (react-bits PromptBar port)
+  interpolates a 7-point polygon from arrow to stop square in a single rAF that
+  idles when settled; `busy` is the only input, and `isTranscribing` still swaps
+  in the `Loader2` spinner.
+- The label span carries `key={primaryState}` — that remount is what re-runs the
+  `composer-primary-label-swap` blur cross-fade. Press scale (0.96) and the label
+  animation are switched off under `prefers-reduced-motion` in `globals.css`;
+  `SendGlyph` checks `usePrefersReducedMotion` for the morph itself.
+- `ClickSpark` wraps the shell for every state with `sparkCount={0}` on Stop
+  (aborting is not a commit), and `.composer-toolbar > [data-effects="click-spark"]`
+  keeps the wrapper as a non-shrinking flex child.
+- `SpecularRim` (react-bits SpecularButton, rebuilt without WebGL) draws the 1px
+  pointer-following edge streak: CSS owns the geometry (masked conic gradient on
+  `--spec-angle`, two lobes 180° apart) and JS only eases that one variable with
+  a rAF that stops when settled. It attaches to its own parent button (no window
+  listener), stays hidden while the button is disabled, and under reduced motion
+  keeps the static diagonal with no follow loop. The host must be
+  `position: relative`.
+- Regression coverage: `components/effects/effects.test.mjs` (frame-stepped morph
+  with a stubbed rAF, path/easing helpers) and `components/ChatInput.test.mjs`
+  (Queue/Stop/Send contract). The effects suite runs via the
+  `components/effects/*.test.mjs` glob in `npm test`.
+
+### Composer status row (`components/effects/LatticeLoader.tsx`, `hooks/useRunClock.ts`)
+- The row above the composer shell ("Thinking…", "Running tool…") is the agent
+  status line: `statusText` (joined phase + subagent/compaction/todo segments)
+  comes from `ChatWindow.composerStatusText`. Its indicator is the react-bits
+  LatticeLoader port — a 3x3 `orbit` wave (per-cell `animation-delay` inline,
+  hole in the middle, lit cells bloom) that resolves into a check. The loader is
+  decorative: the row owns `role="status"`, so the loader must not add its own
+  live region, and the inactive cross-fade labels are `aria-hidden`.
+- `globals.css` keys the loader root off `[data-effects="lattice-loader"]`, never
+  off a caller class — a class-only root selector silently degrades the grid to a
+  block element and stacks the lattice above its label.
+- The stopwatch is anchored to the TURN, not the row: `useRunClock(agentRunning)`
+  hands back `startedAt` (stable while phases alternate) and, once the turn ends,
+  `finishedSeconds` for a 2.5s "Done in Ns" beat. `markAborted()` suppresses that
+  beat — an aborted turn is not a completion — which is why `ChatWindow` passes
+  `handleAbortWithClock` (composer AND minimized bar) instead of `handleAbort`.
+- `chatWindow.thinking` was missing from `lib/i18n/locales/en.json`, so the
+  English row rendered the raw key; it is defined now alongside
+  `chatWindow.doneIn` (all three locales).
+- Regression coverage: `components/effects/effects.test.mjs` (SSR lattice, marks,
+  `formatLatticeTime`, stubbed-interval stopwatch), `hooks/useRunClock.test.mjs`
+  (anchor/linger/abort) and `components/ChatInput.test.mjs` (row + done beat).
+
+### Notification micro-interactions (`components/effects/SwipeToast.tsx`, `FuseButton.tsx`, `BellToggle.tsx`, `CallChip.tsx`)
+- **SwipeToast owns a notice's lifetime.** `NoticeShelf` (`ChatWindow.tsx`) renders
+  one inline toast per notice with `duration = NOTICE_VISIBLE_MS /
+  NOTICE_ERROR_VISIBLE_MS`, and the hook no longer arms notice timers
+  (`NOTICE_EXIT_ANIMATION_MS` is gone) — `onClose` reports
+  `timeout | swipe | action | close | escape | programmatic` and the shelf turns
+  that into `dismissNotice(id)`, which is what promotes a queued notice. A notice
+  that overflowed `MAX_NOTICES` still gets closed early through
+  `open={!notice.exiting}`.
+- The port keeps the fuse and its timer on one clock: pausing (hover, focus,
+  hidden tab) tears the timeout down and stores the leftover, while the CSS fuse
+  pauses through `data-paused` on the same state. Sticky (`duration: 0`) toasts
+  render no fuse at all.
+- The shelf keeps `role="status"`, so the toast and its glyph must stay
+  decorative — `StatusMark`/`SpringCheck` marks are `aria-hidden`/unlabelled
+  there, and `CallChip`/`SwipeToast` only become live regions when a `label`
+  is passed.
+- Global toasts keep base-ui's timing and pause semantics (it pauses on viewport
+  hover, focus and window blur, and swipes on its own): the shell adds grab
+  affordances, `data-swiping` and the `data-ending-style` exit only. Do not give
+  them a CSS fuse — it cannot track base-ui's pause and would lie about the
+  remaining time.
+- **FuseButton** is for deferred/undoable actions: `defaultArmed` mounts it
+  already burning (ProjectRow's "remove project" replaced its confirm dialog —
+  the hide only runs when the fuse ends, and Undo/Escape takes it back).
+  Hover/focus holds the window open, same pause contract as SwipeToast.
+- **BellToggle** drives the completion-sound setting (faces:
+  `settingsConfig.completionSoundOff/On`, all three locales). **CallChip**
+  replaces the collapsed running-tool row and ticks its own counter.
+- All four use `window.setTimeout`/`window.setInterval` so
+  `components/effects/effects.test.mjs` can stub them (React's own zero-delay
+  timers go through the same global — filter by delay when stubbing).
+
 ### MCP configuration (`lib/omp/mcp-config.ts`, `/api/mcp`, `components/McpConfig.tsx`)
 - Project MCP config resolution order: `.omp/mcp.json`, `.omp/.mcp.json`,
   `mcp.json`, `.mcp.json` at the git top level (falls back to cwd for

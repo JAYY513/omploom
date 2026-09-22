@@ -5,6 +5,7 @@ import { getSubmitDuringRunBehavior, setSubmitDuringRunBehavior, type SubmitDuri
 import dynamic from "next/dynamic";
 import { ArrowLeft, Copy, Download, ExternalLink, RefreshCw, RotateCcw, Search, Monitor, Play, Square, Trash2, X } from "lucide-react";
 import { Alert } from "@/components/ui/field";
+import { BellToggle } from "@/components/effects/BellToggle";
 import { GlideSelect } from "@/components/ui/glide-select";
 import { toast } from "@/components/ui/toast";
 import { useI18n } from "@/lib/i18n";
@@ -791,8 +792,11 @@ export function SettingsConfig({ activeTab, toolCallsDefaultCollapsed, onToolCal
                     <ToggleSwitch checked={emptyDotGridEnabled} onChange={onEmptyDotGridChange} />
                   </NativeSetting>
                   <NativeSetting searchId="completion-sound" label={t("settingsConfig.completionSound")} description={t("settingsConfig.completionSoundDesc")} scope="UI">
-                    <ToggleSwitch
-                      checked={soundEnabled}
+                    <BellToggle
+                      offLabel={t("settingsConfig.completionSoundOff")}
+                      onLabel={t("settingsConfig.completionSoundOn")}
+                      pressed={soundEnabled}
+                      badge={false}
                       onChange={(next) => {
                         setSoundEnabled(next);
                         try { localStorage.setItem("omp-sound-enabled", String(next)); } catch { /* storage fallback */ }

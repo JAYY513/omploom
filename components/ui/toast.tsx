@@ -11,9 +11,11 @@
  * Mount <ToastProvider> once near the app root (AppShell).
  */
 import { Toast } from "@base-ui/react/toast";
-import { AlertCircle, Check, Info, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { SpringCheck } from "@/components/effects/SpringCheck";
+import { StatusMark } from "@/components/effects/StatusMark";
 import type React from "react";
 
 type ToastKind = "success" | "error" | "info";
@@ -64,10 +66,11 @@ export const toast = {
 };
 
 function KindIcon({ kind }: { kind?: ToastKind }) {
-  const common = { size: 13, strokeWidth: 2, style: { flexShrink: 0, marginTop: 2 } } as const;
-  if (kind === "success") return <Check {...common} style={{ ...common.style, color: "var(--accent)" }} aria-hidden />;
-  if (kind === "error") return <AlertCircle {...common} style={{ ...common.style, color: "var(--accent-strong)" }} aria-hidden />;
-  return <Info {...common} style={{ ...common.style, color: "var(--text-muted)" }} aria-hidden />;
+  // Status glyphs, not static icons: a toast is a receipt, so the mark draws
+  // itself (check fill for success, cross for failure, idle ring for info).
+  if (kind === "success") return <SpringCheck size={13} style={{ marginTop: 2 }} />;
+  if (kind === "error") return <StatusMark status="failed" size={13} style={{ marginTop: 2 }} />;
+  return <StatusMark status="pending" size={13} style={{ marginTop: 2 }} />;
 }
 
 const descriptionBaseStyle = {

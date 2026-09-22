@@ -13,6 +13,9 @@ import { formatCompactNumber, formatPercent } from "@/lib/format";
 import { ContextDetailPanel } from "./ComposerPanels";
 import { RecordingDeck } from "./RecordingDeck";
 import { ClickSpark } from "./effects/ClickSpark";
+import { LatticeLoader } from "./effects/LatticeLoader";
+import { SendGlyph } from "./effects/SendGlyph";
+import { SpecularRim } from "./effects/SpecularRim";
 import { clearDraft, getDraft, setDraft } from "@/lib/draft-store";
 import { expandWebSlashCommand } from "@/lib/web-slash-commands";
 import type { AttachedImage, AttachedTextFile } from "./ChatInput-draft-attachments";
@@ -148,6 +151,10 @@ interface Props {
   onMinimize?: () => void;
   /** Active status label attached to the composer's top edge (e.g. "Waiting for model..."). */
   statusText?: string | null;
+  /** Run start (epoch ms) anchoring the status row's stopwatch. */
+  statusStartedAt?: number | null;
+  /** Seconds of the run that just ended — the row resolves into a "done" beat. */
+  statusFinishedSeconds?: number | null;
   /** Open Settings → API Keys & Providers from the model picker footer. */
   onOpenProviders?: () => void;
 }
@@ -265,6 +272,8 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, Props>(function ChatIn
   onAdvisorChange,
   onMinimize,
   statusText,
+  statusStartedAt,
+  statusFinishedSeconds,
   onOpenProviders,
 }: Props, ref) {
   const isMobile = useIsMobile();
@@ -1110,6 +1119,48 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, Props>(function ChatIn
     && attachedImages.length === 0
     && attachedTextFiles.length === 0
     && Boolean(onFollowUp);
+  // One shell drives all three primary states, so the label cross-fades and
+  // the glyph morphs instead of the button remounting between them.
+  const dictationActive = isRecording || isPaused || isReviewing;
+  const primaryState = primaryActionQueuesMessage ? "queue" : isStreaming ? "stop" : "send";
+  const primaryHasContent =
+    dictationActive || isTranscribing || Boolean(value.trim())
+    || attachedImages.length > 0 || attachedTextFiles.length > 0;
+  const primaryArmed = primaryState !== "send" || primaryHasContent;
+  const primaryDisabled = primaryState === "stop"
+    ? false
+    : isTranscribing || !(dictationActive || Boolean(value.trim()) || attachedImages.length > 0 || attachedTextFiles.length > 0);
+  const primaryLabel = t(
+    primaryState === "queue" ? "chatInput.queue" : primaryState === "stop" ? "chatInput.stop" : "chatInput.send",
+  );
+  const primaryTitle = primaryState === "queue"
+    ? t("chatInput.queueMessage")
+    : primaryState === "stop"
+      ? t("chatInput.stopAgent")
+      : dictationActive
+        ? t("chatInput.sendDictation")
+        : t("chatInput.send");
+  const handlePrimaryAction = useCallback(() => {
+    if (primaryState === "queue") {
+      if (dictationCapturing) {
+        const behavior = getSubmitDuringRunBehavior();
+        stopAndQueueDictation(behavior === "steer" && onSteer ? "steer" : "followup");
+      } else {
+        sendQueued("followup");
+      }
+      return;
+    }
+    if (primaryState === "stop") {
+      if (isCompacting && onAbortCompaction) onAbortCompaction();
+      else onAbort();
+      return;
+    }
+    if (dictationActive) stopAndSendDictation();
+    else void handleSend();
+  }, [
+    primaryState, dictationCapturing, onSteer, stopAndQueueDictation, sendQueued,
+    isCompacting, onAbortCompaction, onAbort, dictationActive, stopAndSendDictation, handleSend,
+  ]);
 
   // ── Queued follow-up bar ────────────────────────────────────────────────
   // omp reports only a queued count over RPC; the texts are tracked in a
@@ -1121,6 +1172,9 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, Props>(function ChatIn
   ];
   const firstQueued = queuedEntries[0] ?? null;
   const queuedCount = queuedEntries.length;
+  // The status row shows a working phase or a finished run's "done" beat; the
+  // composer shell squares its top corners whenever that row sits above it.
+  const statusRowVisible = Boolean(statusText) || statusFinishedSeconds != null;
 
   const [queueExpanded, setQueueExpanded] = useState(false);
   // Invalidate confirmation if delivery or navigation changes the queue.
@@ -2291,8 +2345,9 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, Props>(function ChatIn
             )}
           </div>
         )}
-        {/* Live agent status bar — attached to composer's top edge */}
-        {statusText && (
+        {/* Live agent status bar — attached to composer's top edge. The lattice
+            is the working indicator; a finished run lingers on a "done" beat. */}
+        {statusRowVisible && (
           <div
             role="status"
             aria-live="polite"
@@ -2309,11 +2364,13 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, Props>(function ChatIn
               color: "var(--text-muted)",
             }}
           >
-            <span
-              aria-hidden
-              className="live-status-dot live-pulse inline-block h-2 w-2 shrink-0 rounded-full bg-accent"
+            <LatticeLoader
+              status={statusText ? "working" : "done"}
+              label={statusText ?? ""}
+              doneLabel={t("chatWindow.doneIn")}
+              startedAt={statusText ? statusStartedAt : null}
+              elapsedSeconds={statusText ? null : statusFinishedSeconds}
             />
-            <span>{statusText}</span>
           </div>
         )}
           <div
@@ -2324,7 +2381,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, Props>(function ChatIn
               flexDirection: "column",
               background: "var(--bg)",
               border: `1px solid ${bashMode ? "var(--tool-bg)" : "color-mix(in srgb, var(--border) 70%, transparent)"}`,
-              borderRadius: (queuedCount > 0 || Boolean(statusText)) ? "0 0 var(--radius-card) var(--radius-card)" : "var(--radius-card)",
+              borderRadius: (queuedCount > 0 || statusRowVisible) ? "0 0 var(--radius-card) var(--radius-card)" : "var(--radius-card)",
               padding: "12px 12px 10px",
               boxShadow: "var(--shadow-card)",
               transition: "border-color var(--dur-fast) var(--ease-out-warm), background var(--dur-fast) var(--ease-out-warm), box-shadow var(--dur-fast) var(--ease-out-warm)",
@@ -2957,92 +3014,41 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, Props>(function ChatIn
                 <Mic size={14} strokeWidth={1.8} aria-hidden="true" />
               </button>
             )}
-            {/* Primary action: Send (idle) / Queue (typed while running) / Stop (running) */}
-            {primaryActionQueuesMessage ? (
+            {/* Primary action: one shell for Send (idle) / Queue (typed while
+                running) / Stop (running). The glyph morphs arrow <-> stop square
+                across a run's start and end, the label cross-fades. Sparks stay
+                off Stop: aborting is not a commit. */}
+            <ClickSpark sparkCount={primaryState === "stop" ? 0 : 10} sparkRadius={22}>
               <button
                 type="button"
                 className="composer-primary-action"
-                onClick={() => {
-                  if (dictationCapturing) {
-                    const behavior = getSubmitDuringRunBehavior();
-                    stopAndQueueDictation(behavior === "steer" && onSteer ? "steer" : "followup");
-                  } else {
-                    sendQueued("followup");
-                  }
-                }}
-                disabled={isTranscribing}
-                title={t("chatInput.queueMessage")}
+                data-state={primaryState}
+                onClick={handlePrimaryAction}
+                disabled={primaryDisabled}
+                title={primaryTitle}
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
-                  background: "var(--accent-strong)",
+                  background: primaryArmed ? "var(--accent-strong)" : "var(--bg-panel)",
                   border: "none",
                   borderRadius: 8,
-                  color: "var(--on-accent)",
-                  cursor: "pointer",
+                  color: primaryArmed ? "var(--on-accent)" : "var(--text-dim)",
+                  cursor: primaryDisabled ? (isTranscribing ? "wait" : "not-allowed") : "pointer",
                   fontSize: 12,
                   fontWeight: 600,
-                  transition: "background var(--dur-fast) var(--ease-out-warm)",
+                  boxShadow: primaryArmed ? "var(--shadow-card)" : "none",
                 }}
               >
-                <ListChecks size={13} strokeWidth={2} aria-hidden="true" />
-                {t("chatInput.queue")}
-              </button>
-            ) : isStreaming ? (
-              <button
-                type="button"
-                className="composer-primary-action"
-                onClick={isCompacting ? onAbortCompaction : onAbort}
-                title={t("chatInput.stopAgent")}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  background: "var(--accent-strong)",
-                  border: "none",
-                  borderRadius: 8,
-                  color: "var(--on-accent)",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  transition: "background var(--dur-fast) var(--ease-out-warm)",
-                }}
-              >
-                <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-                  <rect x="1.5" y="1.5" width="7" height="7" rx="1.5" fill="currentColor" />
-                </svg>
-                {t("chatInput.stop")}
-              </button>
-            ) : (
-              <ClickSpark sparkCount={10} sparkRadius={22}>
-              <button
-                type="button"
-                className="composer-primary-action"
-                onClick={isRecording || isPaused || isReviewing ? stopAndSendDictation : () => void handleSend()}
-                disabled={isTranscribing || !(isRecording || isPaused || isReviewing || value.trim() || attachedImages.length || attachedTextFiles.length)}
-                title={isRecording || isPaused || isReviewing ? t("chatInput.sendDictation") : t("chatInput.send")}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  background: (isRecording || isPaused || isReviewing || isTranscribing || value.trim() || attachedImages.length || attachedTextFiles.length) ? "var(--accent-strong)" : "var(--bg-panel)",
-                  border: "none",
-                  borderRadius: 8,
-                  color: (isRecording || isPaused || isReviewing || isTranscribing || value.trim() || attachedImages.length || attachedTextFiles.length) ? "var(--on-accent)" : "var(--text-dim)",
-                  cursor: isTranscribing ? "wait" : (isRecording || isPaused || value.trim() || attachedImages.length || attachedTextFiles.length) ? "pointer" : "not-allowed",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  boxShadow: (isRecording || isPaused || isTranscribing || value.trim() || attachedImages.length || attachedTextFiles.length) ? "var(--shadow-card)" : "none",
-                  transition: "background var(--dur-fast) var(--ease-out-warm), box-shadow var(--dur-fast) var(--ease-out-warm)",
-                }}
-              >
-                {isTranscribing ? (
+                {primaryState === "queue" ? (
+                  <ListChecks size={13} strokeWidth={2} aria-hidden="true" />
+                ) : isTranscribing ? (
                   <Loader2 size={12} strokeWidth={2} className="animate-spin" aria-hidden="true" />
                 ) : (
-                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="2" y1="7" x2="11" y2="7" />
-                    <polyline points="7.5 3 12 7 7.5 11" />
-                  </svg>
+                  <SendGlyph busy={primaryState === "stop"} className="composer-primary-glyph" />
                 )}
-                {t("chatInput.send")}
+                <span key={primaryState} className="composer-primary-label">{primaryLabel}</span>
+                <SpecularRim />
               </button>
-              </ClickSpark>
-            )}
+            </ClickSpark>
           </div>
           </div>
         </div>

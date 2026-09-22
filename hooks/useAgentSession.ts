@@ -56,9 +56,6 @@ import {
 } from "./useAgentSession-queue";
 import type { QueuedMessages } from "./useAgentSession-queue";
 import {
-  NOTICE_ERROR_VISIBLE_MS,
-  NOTICE_EXIT_ANIMATION_MS,
-  NOTICE_VISIBLE_MS,
   createNoticeId,
   noticeReducer,
 } from "./useAgentSession-notices";
@@ -3447,24 +3444,6 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     const t = setTimeout(() => setCompactResult(null), 6000);
     return () => clearTimeout(t);
   }, [compactResult]);
-
-  useEffect(() => {
-    if (noticeState.visible.length === 0) return;
-    const exiting = noticeState.visible.find((notice) => notice.exiting);
-    if (exiting) {
-      const t = setTimeout(() => {
-        dispatchNotice({ type: "remove", id: exiting.id });
-      }, NOTICE_EXIT_ANIMATION_MS);
-      return () => clearTimeout(t);
-    }
-    const oldest = noticeState.visible[0];
-    if (!oldest) return;
-    const timeout = oldest.type === "error" ? NOTICE_ERROR_VISIBLE_MS : NOTICE_VISIBLE_MS;
-    const t = setTimeout(() => {
-      dispatchNotice({ type: "mark_oldest_exiting" });
-    }, timeout);
-    return () => clearTimeout(t);
-  }, [noticeState.visible]);
 
   useEffect(() => {
     setSessionStatsOverride(null);

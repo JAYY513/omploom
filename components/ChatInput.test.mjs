@@ -10,6 +10,7 @@ const jiti = createJiti(import.meta.url, {
 });
 const { ChatInput, ModelErrorBanner, filterModelOptions } = await jiti.import("./ChatInput.tsx");
 const { setDraft, clearDraft } = await jiti.import("@/lib/draft-store");
+const { sendGlyphPath } = await jiti.import("./effects/SendGlyph.tsx");
 
 test("shows Queue instead of Stop for typed text during a run", () => {
   const draftKey = "chat-input-queue-action-test";
@@ -28,6 +29,29 @@ test("shows Queue instead of Stop for typed text during a run", () => {
     assert.match(html, />(Queue|chatInput\.queue)</);
     assert.match(html, /title="(Queue this message after the agent finishes|chatInput\.queueMessage)"/);
     assert.doesNotMatch(html, />(Stop|chatInput\.stop)</);
+  } finally {
+    clearDraft(draftKey);
+  }
+});
+
+test("one primary button morphs the send arrow into the stop square", () => {
+  const draftKey = "chat-input-primary-action-test";
+  try {
+    const idle = renderToStaticMarkup(
+      React.createElement(ChatInput, { onSend() {}, onAbort() {}, isStreaming: false, draftKey }),
+    );
+    const running = renderToStaticMarkup(
+      React.createElement(ChatInput, { onSend() {}, onAbort() {}, isStreaming: true, draftKey }),
+    );
+
+    assert.ok(idle.includes(`d="${sendGlyphPath(0)}"`), "idle keeps the arrow");
+    assert.ok(running.includes(`d="${sendGlyphPath(1)}"`), "a run keeps the stop square");
+    assert.match(idle, /title="(Send|chatInput\.send)"/);
+    assert.match(running, /title="(Stop agent|chatInput\.stopAgent)"/);
+    assert.match(running, />(Stop|chatInput\.stop)</);
+    assert.doesNotMatch(idle, />(Stop|chatInput\.stop)</);
+    assert.match(idle, /data-effects="specular-rim"/, "the rim rides every primary state");
+    assert.match(running, /data-effects="specular-rim"/);
   } finally {
     clearDraft(draftKey);
   }
@@ -281,7 +305,7 @@ test("renders live status bar attached to the composer top edge when statusText 
 
   assert.match(html, /role="status"/);
   assert.match(html, /Waiting for model\.\.\./);
-  assert.match(html, /live-status-dot/);
+  assert.match(html, /data-effects="lattice-loader"/);
 });
 
 test("omits live status bar when statusText is absent or null", () => {
@@ -314,5 +338,26 @@ test("renders both queued prompts and attached status bar together", () => {
 
   assert.match(html, /Next prompt to run/);
   assert.match(html, /Waiting for model\.\.\./);
-  assert.match(html, /live-status-dot/);
+  assert.match(html, /data-effects="lattice-loader"/);
+});
+
+test("resolves the status row into a done beat with the finished run's duration", () => {
+  const html = renderToStaticMarkup(
+    React.createElement(ChatInput, {
+      onSend() {},
+      onAbort() {},
+      isStreaming: false,
+      statusText: null,
+      statusFinishedSeconds: 12.4,
+    }),
+  );
+
+  assert.match(html, /role="status"/);
+  assert.match(html, /data-status="done"/);
+  assert.match(html, /(Done in|chatWindow\.doneIn)/);
+  assert.match(html, /12\.4s/);
+  assert.doesNotMatch(html, /data-status="working"/);
+  // The shell must square its top corners under the row or the two rounded
+  // edges stack into a visible seam.
+  assert.match(html, /border-radius:0 0 var\(--radius-card\) var\(--radius-card\)/);
 });

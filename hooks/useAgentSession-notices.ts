@@ -23,7 +23,6 @@ export type NoticeAction =
 export const MAX_NOTICES = 5;
 export const NOTICE_VISIBLE_MS = 5000;
 export const NOTICE_ERROR_VISIBLE_MS = 30000;
-export const NOTICE_EXIT_ANIMATION_MS = 180;
 
 export function createNoticeId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {

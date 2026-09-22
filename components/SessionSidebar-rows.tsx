@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { comparableProjectPath } from "@/lib/comparable-path";
 import { Check, ChevronDown, ChevronRight, Folder, GitBranch, MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import { Tooltip } from "./ui/primitives";
+import { FuseButton } from "./effects/FuseButton";
 import { StaggerList } from "./effects/StaggerList";
 import { ConfirmDialog } from "./ui/field";
 import { copyText } from "@/lib/clipboard";
@@ -108,7 +109,10 @@ function ProjectRow({
   const [hovered, setHovered] = useState(false);
   const [showAllSessions, setShowAllSessions] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState(false);
+  // Hiding a project is reversible (re-adding it restores it), so the row arms a
+  // fuse instead of interrupting with a confirm dialog: the action only runs
+  // when the fuse burns out, and Undo/Escape takes it back.
+  const [hideArmed, setHideArmed] = useState(false);
   const actionButtonRef = useRef<HTMLButtonElement>(null);
   const [aliasEditing, setAliasEditing] = useState(false);
   const [aliasValue, setAliasValue] = useState("");
@@ -140,21 +144,6 @@ function ProjectRow({
 
   return (
     <section className="sidebar-project" data-active={isActive ? "true" : "false"} style={{ marginBottom: 12 }}>
-      <ConfirmDialog
-        open={confirmRemove}
-        onOpenChange={setConfirmRemove}
-        title={<span style={{ overflowWrap: "anywhere" }}>{t("projects.remove", { name: label })}</span>}
-        description={<span style={{ overflowWrap: "anywhere" }}>{t("projects.removeTitle", { name: label })}</span>}
-        confirmLabel={t("projects.removeConfirmLabel")}
-        cancelLabel={t("sessionSidebar.cancel")}
-        danger
-        busy={removeBusy}
-        onConfirm={() => {
-          if (removeBusy) return;
-          setConfirmRemove(false);
-          onRemoveProject(project.path);
-        }}
-      />
       <div
         className="sidebar-project-header"
         draggable={!aliasEditing}
@@ -350,6 +339,19 @@ function ProjectRow({
             flexShrink: 0,
           }}
         >
+          {hideArmed ? (
+            <FuseButton
+              defaultArmed
+              label={t("projects.removeConfirmLabel")}
+              armedLabel={t("projects.hideUndo")}
+              undoWindow={4000}
+              commitOn="fuseEnd"
+              disabled={removeBusy}
+              title={t("projects.removeTitle", { name: label })}
+              onArmedChange={(armed) => { if (!armed) setHideArmed(false); }}
+              onCommit={() => onRemoveProject(project.path)}
+            />
+          ) : (<>
           <button
             type="button"
             ref={actionButtonRef}
@@ -383,10 +385,11 @@ function ProjectRow({
             <button type="button" role="menuitem" className="sidebar-menu-item" onClick={() => { setActionMenuOpen(false); void onMoveProject(project.path, 1); }} style={{ display: "block", width: "100%", padding: "6px 9px", border: "none", borderRadius: 6, background: "transparent", color: "var(--text)", cursor: "pointer", textAlign: "left", fontSize: 11 }}>
               {t("projects.moveDown")}
             </button>
-            <button type="button" role="menuitem" className="sidebar-menu-item" disabled={removeBusy} onClick={() => { setActionMenuOpen(false); setConfirmRemove(true); }} style={{ display: "block", width: "100%", padding: "6px 9px", border: "none", borderRadius: 6, background: "transparent", color: "var(--status-error)", cursor: removeBusy ? "default" : "pointer", textAlign: "left", fontSize: 11 }}>
+            <button type="button" role="menuitem" className="sidebar-menu-item" disabled={removeBusy} onClick={() => { setActionMenuOpen(false); setHideArmed(true); }} style={{ display: "block", width: "100%", padding: "6px 9px", border: "none", borderRadius: 6, background: "transparent", color: "var(--status-error)", cursor: removeBusy ? "default" : "pointer", textAlign: "left", fontSize: 11 }}>
               {t("projects.remove", { name: label })}
             </button>
           </SidebarPortalMenu>
+          </>)}
         </div>
         <button
           className="sidebar-project-toggle"

@@ -14,17 +14,23 @@ import { SubagentTranscriptDialog } from "./SubagentTranscriptDialog";
 import { ChatMinimap, useMessageRefs } from "./ChatMinimap";
 import { ComposerPanels } from "./ComposerPanels";
 import { BlurText } from "./effects/BlurText";
+import { CallChip } from "./effects/CallChip";
 import { DotGrid } from "./effects/DotGrid";
 import { FadeIn } from "./effects/FadeIn";
 import { ParticleText } from "./effects/ParticleText";
 import { SplitText } from "./effects/SplitText";
+import { SpringCheck } from "./effects/SpringCheck";
+import { StatusMark } from "./effects/StatusMark";
+import { SwipeToast } from "./effects/SwipeToast";
 import { TypeHint } from "./effects/TypeHint";
 import { CHAT_COLUMN_MAX_WIDTH, MINIMAP_WIDTH } from "@/lib/chat-layout";
-import { useAgentSession, type AgentPhase, type NoticeItem, type SubagentInfo } from "@/hooks/useAgentSession";
+import { useAgentSession, type AgentPhase, type NoticeItem, type NoticeType, type SubagentInfo } from "@/hooks/useAgentSession";
+import { NOTICE_ERROR_VISIBLE_MS, NOTICE_VISIBLE_MS } from "@/hooks/useAgentSession-notices";
 import { useAudio } from "@/hooks/useAudio";
 import { useSpeechSynthesis, SpeechSynthesisProvider } from "@/hooks/useSpeechSynthesis";
 import { useDragDrop } from "@/hooks/useDragDrop";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useRunClock } from "@/hooks/useRunClock";
 import type { SessionStatsInfo, GenerationSpeedInfo } from "@/lib/pi-types";
 import type { ProviderUsageContext } from "@/lib/provider-usage-types";
 import { normalizeCustomPanelLines, parseAnsiLine } from "@/lib/ansi";
@@ -628,6 +634,13 @@ export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCa
     if (speech) ttsRef.current.speak(speech.id, speech.text);
   }, [messages, entryIds, streamState, agentRunning]);
   const sessionBusy = agentRunning || bashRunning;
+  // Stopwatch for the composer status row (anchored to the turn's start) plus
+  // its "done" beat; aborting a turn never reports a duration.
+  const { startedAt: runStartedAt, finishedSeconds: runFinishedSeconds, markAborted: markRunAborted } = useRunClock(agentRunning);
+  const handleAbortWithClock = useCallback(() => {
+    markRunAborted();
+    handleAbort();
+  }, [markRunAborted, handleAbort]);
   const modelCapacity = useMemo(() => {
     if (!displayModelValue) return null;
     const model = modelList.find((entry) => entry.provider === displayModelValue.provider && entry.id === displayModelValue.modelId);
@@ -1062,7 +1075,7 @@ export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCa
     <ChatInput
       ref={chatInputRef}
       onSend={handleSend}
-      onAbort={handleAbort}
+      onAbort={handleAbortWithClock}
       onSteer={agentRunning ? handleSteer : undefined}
       onFollowUp={agentRunning ? handleFollowUp : undefined}
       onPromptWithStreamingBehavior={agentRunning ? handlePromptWithStreamingBehavior : undefined}
@@ -1117,6 +1130,8 @@ export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCa
          nothing to collapse. */
       onMinimize={isEmptyNew ? undefined : handleMinimize}
       statusText={composerStatusText}
+      statusStartedAt={runStartedAt}
+      statusFinishedSeconds={runFinishedSeconds}
       onOpenProviders={onOpenProviders}
     />
   );
@@ -1343,22 +1358,13 @@ export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCa
             )}
 
             {toolCallsDefaultCollapsed && pendingToolHeaders.map((tool) => (
-              <div
+              <CallChip
                 key={tool.id}
-                role="status"
-                aria-label={t("chatWindow.runningNamed", { names: tool.name })}
-                style={{
-                  display: "flex", alignItems: "center", gap: 7,
-                  marginBottom: 8, padding: "6px 10px",
-                  border: "1px solid color-mix(in srgb, var(--status-success) 25%, transparent)",
-                  borderRadius: "var(--radius-control)",
-                  background: "color-mix(in srgb, var(--status-success) 4%, transparent)",
-                  color: "var(--text-muted)", fontSize: 12,
-                }}
-              >
-                <span aria-hidden className="live-status-dot live-pulse inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                <span style={{ color: "var(--status-success)", fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 11 }}>{tool.name}</span>
-              </div>
+                name={tool.name}
+                status="running"
+                label={t("chatWindow.runningNamed", { names: tool.name })}
+                style={{ marginBottom: 8 }}
+              />
             ))}
 
 
@@ -1398,7 +1404,7 @@ export function ChatWindow({ session, newSessionCwd, newSessionWorkspace, toolCa
           statusText={composerStatusText}
           expandRef={minimizedExpandRef}
           onExpand={handleExpand}
-          onAbort={handleAbort}
+          onAbort={handleAbortWithClock}
           onAbortCompaction={handleAbortCompaction}
         />
       )}
@@ -1521,6 +1527,22 @@ function ExtensionWidgets({ widgets }: { widgets: Array<{ key: string; lines: st
   );
 }
 
+/** Notice kind → tint + status glyph. The shelf owns the live region, so the
+ *  glyphs stay decorative. */
+function noticeAccent(type: NoticeType): string {
+  if (type === "error") return "var(--status-error)";
+  if (type === "warning") return "var(--status-warning)";
+  if (type === "success") return "var(--status-success)";
+  return "var(--accent)";
+}
+
+function noticeMark(type: NoticeType) {
+  if (type === "success") return <SpringCheck size={14} />;
+  if (type === "error") return <StatusMark status="failed" size={14} />;
+  if (type === "warning") return <StatusMark status="pending" size={14} style={{ color: "var(--status-warning)" }} />;
+  return <StatusMark status="pending" size={14} />;
+}
+
 function NoticeShelf({ notices, onDismiss, floating = false, align = "left" }: { notices: NoticeItem[]; onDismiss?: (id: string) => void; floating?: boolean; align?: "left" | "right" }) {
   if (notices.length === 0) return null;
   return (
@@ -1531,103 +1553,33 @@ function NoticeShelf({ notices, onDismiss, floating = false, align = "left" }: {
         display: "flex",
         flexDirection: "column",
         alignItems: align === "right" ? "flex-end" : "stretch",
+        gap: 4,
         marginBottom: floating ? 0 : 10,
         pointerEvents: floating ? "auto" : undefined,
       }}
     >
-      {notices.map((notice, index) => {
-        const color = notice.type === "error"
-          ? "var(--status-error)"
-          : notice.type === "warning"
-            ? "var(--status-warning)"
-            : notice.type === "success"
-              ? "var(--status-success)"
-              : "var(--accent)";
-        const isError = notice.type === "error";
-        return (
-          <div
-            key={notice.id}
-            className="notice-shelf-item"
-            style={{
-              display: "flex",
-              alignItems: isError ? "flex-start" : "center",
-              gap: 8,
-              minHeight: 36,
-              height: isError ? "auto" : 36,
-              maxHeight: isError ? 96 : 48,
-              marginBottom: index === notices.length - 1 ? 0 : 4,
-              overflow: "hidden",
-              borderRadius: "var(--radius-control)",
-              border: `1px solid ${isError ? "color-mix(in srgb, var(--status-error) 35%, var(--border))" : "color-mix(in srgb, var(--border) 70%, transparent)"}`,
-              background: isError ? "color-mix(in srgb, var(--status-error) 7%, var(--bg))" : "var(--bg)",
-              color: isError ? "var(--text)" : "var(--text-muted)",
-              width: "fit-content",
-              maxWidth: "min(100%, 640px)",
-              boxShadow: floating ? "var(--shadow-pop)" : "var(--shadow-card)",
-              fontSize: 12,
-              lineHeight: 1.4,
-              transformOrigin: "top center",
-              animation: notice.exiting
-                ? "notice-shelf-out var(--dur-med) ease-in forwards"
-                : "notice-shelf-in var(--dur-med) var(--ease-out-warm) both",
-              padding: isError ? "8px 8px 8px 10px" : "0 10px",
-            }}
-          >
-            <span
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: color,
-                flexShrink: 0,
-                marginTop: isError ? 6 : 0,
-              }}
-            />
-            <span
-              style={{
-                padding: isError ? "0" : "8px 0",
-                minWidth: 0,
-                maxWidth: "100%",
-                overflow: "hidden",
-                display: isError ? "-webkit-box" : "block",
-                WebkitLineClamp: isError ? 3 : undefined,
-                WebkitBoxOrient: isError ? "vertical" as const : undefined,
-                overflowWrap: "anywhere",
-                whiteSpace: isError ? "normal" : "nowrap",
-                textOverflow: isError ? "clip" : "ellipsis",
-                flex: 1,
-              }}
-              title={notice.message}
-            >
-              {notice.message}
-            </span>
-            {onDismiss && (
-              <button
-                type="button"
-                onClick={() => onDismiss(notice.id)}
-                aria-label="Dismiss"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 18,
-                  height: 18,
-                  padding: 0,
-                  border: 0,
-                  borderRadius: "var(--radius-control)",
-                  background: "transparent",
-                  color: "var(--text-dim)",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                  marginTop: isError ? 1 : 0,
-                }}
-              >
-                <span aria-hidden style={{ fontSize: 12, lineHeight: 1 }}>×</span>
-              </button>
-            )}
-          </div>
-        );
-      })}
+      {notices.map((notice) => (
+        // Each notice owns its lifetime: the fuse burns for exactly its
+        // remaining time (hover/focus/tab-hidden pause both), a downward swipe
+        // dismisses it, and the close reason comes back through onClose so the
+        // queue can promote whatever was waiting behind it.
+        <SwipeToast
+          key={notice.id}
+          inline
+          open={!notice.exiting}
+          duration={notice.type === "error" ? NOTICE_ERROR_VISIBLE_MS : NOTICE_VISIBLE_MS}
+          title={notice.message}
+          titleClamp={notice.type === "error" ? 3 : 1}
+          icon={noticeMark(notice.type)}
+          style={{
+            "--st-tone": noticeAccent(notice.type),
+            "--st-shadow": floating ? "var(--shadow-pop)" : "var(--shadow-card)",
+            width: "fit-content",
+            maxWidth: "min(100%, 640px)",
+          } as React.CSSProperties}
+          onClose={() => onDismiss?.(notice.id)}
+        />
+      ))}
     </div>
   );
 }

@@ -1774,12 +1774,56 @@ pre, code {
 }
 .composer-primary-action {
   flex-shrink: 0;
+  position: relative;
   min-width: 7em;
   justify-content: center;
   white-space: nowrap;
   min-height: 28px;
   padding: 4px 10px;
   line-height: 20px;
+  /* Colors stay inline (they follow the armed state); transform lives here so
+     the press scale shares one motion budget with the color swap. */
+  transition:
+    background var(--dur-fast) var(--ease-out-warm),
+    box-shadow var(--dur-fast) var(--ease-out-warm),
+    transform var(--dur-fast) var(--ease-out-warm);
+}
+.composer-primary-action:not(:disabled):active {
+  transform: scale(0.96);
+}
+/* Effects wrapper is the toolbar's flex child for every primary state. */
+.composer-toolbar > [data-effects="click-spark"] {
+  flex-shrink: 0;
+}
+.composer-primary-glyph {
+  display: block;
+}
+.composer-primary-label {
+  animation: composer-primary-label-swap var(--dur-med) var(--ease-out-warm) both;
+}
+@keyframes composer-primary-label-swap {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+/* After the base rules: equal specificity, so the off switch must win by order. */
+@media (prefers-reduced-motion: reduce) {
+  .composer-primary-action {
+    transition: background var(--dur-fast) var(--ease-out-warm), box-shadow var(--dur-fast) var(--ease-out-warm);
+  }
+  .composer-primary-action:not(:disabled):active {
+    transform: none;
+  }
+  .composer-primary-label {
+    animation: none;
+  }
 }
 @container (max-width: 400px) {
   .composer-model-control > button > svg:first-child,
@@ -2076,6 +2120,606 @@ span.token.table {
   .effects-stagger-item, .effects-shiny, .effects-type-caret-done { animation: none; }
   .effects-stagger-item { opacity: 1; }
   .effects-shiny { background: none; -webkit-text-fill-color: currentColor; color: inherit; }
+}
+/* LatticeLoader parity (components/effects/LatticeLoader): the composer status
+   row's working indicator. Cells pulse in a phase-offset wave (delay per cell is
+   inline), the mark layer takes over on resolve. Colors are tokens only. */
+[data-effects="lattice-loader"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625em;
+  font-size: inherit;
+  line-height: 1;
+}
+.effects-lattice-grid {
+  display: grid;
+  flex: none;
+}
+.effects-lattice-layer {
+  grid-area: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(3, var(--effects-lattice-cell, 5px));
+  gap: var(--effects-lattice-gap, 2px);
+}
+.effects-lattice-cell {
+  width: var(--effects-lattice-cell, 5px);
+  height: var(--effects-lattice-cell, 5px);
+  border-radius: 50%;
+  background: var(--effects-lattice-color, var(--accent));
+  opacity: 0.15;
+}
+/* Upstream's `glow` option, on by default here: lit cells bloom. */
+.effects-lattice-run .effects-lattice-cell:not([data-hole]) {
+  box-shadow: 0 0 calc(var(--effects-lattice-cell, 5px) * 1.2) calc(var(--effects-lattice-cell, 5px) * 0.12) var(--effects-lattice-color, var(--accent));
+}
+.effects-lattice-run .effects-lattice-cell {
+  animation: effects-lattice-on var(--effects-lattice-cycle, 864ms) cubic-bezier(0.77, 0, 0.175, 1) infinite;
+}
+.effects-lattice-run .effects-lattice-cell[data-hole] {
+  animation: none;
+  opacity: 0.07;
+}
+.effects-lattice-mark {
+  opacity: 0;
+  transform: scale(0.9);
+  transform-origin: center;
+  transition: opacity 160ms var(--ease-out-warm), transform 160ms var(--ease-out-warm);
+}
+.effects-lattice-mark .effects-lattice-cell {
+  transition: opacity 200ms ease, background-color 200ms ease;
+}
+.effects-lattice-mark .effects-lattice-cell[data-on] {
+  background: var(--effects-lattice-mark, var(--status-success));
+  box-shadow: 0 0 calc(var(--effects-lattice-cell, 5px) * 1.2) calc(var(--effects-lattice-cell, 5px) * 0.12) var(--effects-lattice-mark, var(--status-success));
+  opacity: 1;
+}
+[data-effects="lattice-loader"][data-status="error"] .effects-lattice-mark .effects-lattice-cell[data-on] {
+  background: var(--status-error);
+  box-shadow: 0 0 calc(var(--effects-lattice-cell, 5px) * 1.2) calc(var(--effects-lattice-cell, 5px) * 0.12) var(--status-error);
+}
+[data-effects="lattice-loader"]:not([data-status="working"]) .effects-lattice-run {
+  opacity: 0;
+}
+[data-effects="lattice-loader"]:not([data-status="working"]) .effects-lattice-run .effects-lattice-cell {
+  animation-play-state: paused;
+}
+[data-effects="lattice-loader"]:not([data-status="working"]) .effects-lattice-mark {
+  opacity: 1;
+  transform: none;
+}
+.effects-lattice-label {
+  position: relative;
+  display: inline-block;
+  font-weight: 500;
+}
+.effects-lattice-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+  opacity: 0;
+  filter: blur(2px);
+  transition: opacity 200ms ease, filter 200ms ease;
+}
+.effects-lattice-text[data-active] {
+  position: static;
+  opacity: 1;
+  filter: blur(0);
+}
+.effects-lattice-timer {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+@keyframes effects-lattice-on {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  18%,
+  42% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.15;
+  }
+}
+/* Upstream keeps the wave under reduced motion, just slower and in phase. */
+@media (prefers-reduced-motion: reduce) {
+  .effects-lattice-run .effects-lattice-cell {
+    animation-delay: 0ms !important;
+    animation-duration: 1400ms !important;
+  }
+  .effects-lattice-mark {
+    transform: none;
+  }
+  .effects-lattice-text {
+    filter: none;
+  }
+}
+/* SpecularRim (components/effects/SpecularRim.tsx): 1px rim streak that follows
+   the pointer, rebuilt from react-bits SpecularButton without WebGL. CSS owns
+   the streak geometry; JS only eases --spec-angle and toggles data-on. */
+[data-effects="specular-rim"] {
+  --spec-angle: 135deg;
+  --spec-color: color-mix(in srgb, var(--on-accent) 85%, transparent);
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out-warm);
+  background: conic-gradient(
+    from var(--spec-angle),
+    transparent 0deg,
+    var(--spec-color) 16deg,
+    transparent 34deg,
+    transparent 180deg,
+    var(--spec-color) 196deg,
+    transparent 214deg
+  );
+  /* Keep only the 1px ring: the gradient fills the padding box, the mask
+     subtracts the content box. */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+[data-effects="specular-rim"][data-on] {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-effects="specular-rim"] {
+    transition: none;
+  }
+}
+/* SwipeToast parity (components/effects/SwipeToast): notice card that rises in,
+   swipes down to dismiss on a flick or a distance, and burns a hairline fuse
+   for exactly its remaining lifetime. --st-tone tints the chrome, glyph and
+   fuse per kind; the timer that ends the fuse lives in the component, and
+   hover / focus / hidden-tab pauses both through data-paused. */
+[data-effects="swipe-toast"] {
+  --st-tone: var(--accent);
+  --st-duration: 0ms;
+  --st-drag: 0px;
+  --st-lift: 320ms;
+  display: grid;
+  grid-template-rows: 1fr;
+  width: 100%;
+  min-width: 0;
+}
+[data-effects="swipe-toast"][data-inline="true"] {
+  transition: grid-template-rows var(--st-lift) var(--ease-out-warm);
+}
+[data-effects="swipe-toast"][data-inline="true"][data-mounted="false"],
+[data-effects="swipe-toast"][data-inline="true"][data-phase="closing"],
+[data-effects="swipe-toast"][data-inline="true"][data-phase="gone"] {
+  grid-template-rows: 0fr;
+}
+.swipe-toast__gate {
+  min-height: 0;
+}
+.swipe-toast__lift {
+  display: flex;
+  transform: translateY(0);
+  opacity: 1;
+  transition:
+    transform var(--st-lift) var(--ease-out-warm),
+    opacity calc(var(--st-lift) * 0.8) ease;
+}
+[data-effects="swipe-toast"][data-mounted="false"] .swipe-toast__lift,
+[data-effects="swipe-toast"][data-phase="closing"] .swipe-toast__lift {
+  transform: translateY(110%);
+  opacity: 0;
+}
+/* Dragging follows the hand with no transition; release hands it back. */
+[data-effects="swipe-toast"][data-dragging] .swipe-toast__lift {
+  transition: none;
+  transform: translateY(var(--st-drag));
+}
+.swipe-toast__card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--st-tone) 30%, var(--border));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--st-tone) 6%, var(--bg));
+  color: var(--text);
+  box-shadow: var(--st-shadow, var(--shadow-card));
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+[data-effects="swipe-toast"][data-dragging] .swipe-toast__card {
+  cursor: grabbing;
+}
+.swipe-toast__card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.swipe-toast__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--st-tone);
+}
+.swipe-toast__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.swipe-toast__desc {
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.swipe-toast__action,
+.swipe-toast__close {
+  flex: none;
+  border-radius: var(--radius-control);
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out-warm), color var(--dur-fast) var(--ease-out-warm);
+}
+.swipe-toast__action {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--st-tone) 35%, var(--border));
+  background: color-mix(in srgb, var(--st-tone) 14%, var(--bg-panel));
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+}
+.swipe-toast__action:hover {
+  background: color-mix(in srgb, var(--st-tone) 22%, var(--bg-panel));
+}
+.swipe-toast__close {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+}
+/* Keep the dismiss target finger-sized without growing the card. */
+.swipe-toast__close::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+.swipe-toast__close:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.swipe-toast__fuse {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  transform-origin: left center;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--st-tone) 18%, transparent) 9%,
+    color-mix(in srgb, var(--st-tone) 50%, transparent) 18%,
+    color-mix(in srgb, var(--st-tone) 84%, transparent) 28%,
+    var(--st-tone) 38%,
+    var(--st-tone) 62%,
+    color-mix(in srgb, var(--st-tone) 84%, transparent) 72%,
+    color-mix(in srgb, var(--st-tone) 50%, transparent) 82%,
+    color-mix(in srgb, var(--st-tone) 18%, transparent) 91%,
+    transparent 100%
+  );
+  animation: swipe-toast-fuse var(--st-duration) linear forwards;
+  pointer-events: none;
+}
+[data-effects="swipe-toast"][data-paused="true"] .swipe-toast__fuse {
+  animation-play-state: paused;
+}
+[data-effects="swipe-toast"][data-phase="closing"] .swipe-toast__fuse {
+  animation-play-state: paused;
+  opacity: 0.4;
+}
+@keyframes swipe-toast-fuse {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+/* FuseButton parity (components/effects/FuseButton): press arms the action, the
+   label crossfades to the armed label, and a hairline burns for exactly the
+   undo window. Hovering/focusing an armed button holds the window open —
+   data-paused pauses the fuse and the component's timer together. */
+[data-effects="fuse-button"] {
+  --fb-tone: var(--status-warning);
+  --fb-window: 4000ms;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg-panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    background var(--dur-fast) var(--ease-out-warm),
+    border-color var(--dur-fast) var(--ease-out-warm),
+    color var(--dur-fast) var(--ease-out-warm);
+}
+[data-effects="fuse-button"]:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+[data-effects="fuse-button"]:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+[data-effects="fuse-button"][data-phase="armed"] {
+  border-color: color-mix(in srgb, var(--fb-tone) 45%, var(--border));
+  background: color-mix(in srgb, var(--fb-tone) 12%, var(--bg-panel));
+  color: var(--text);
+}
+.fuse-button__label {
+  animation: fuse-button-label var(--dur-med) var(--ease-out-warm) both;
+}
+@keyframes fuse-button-label {
+  from { opacity: 0; filter: blur(3px); }
+  to { opacity: 1; filter: blur(0); }
+}
+.fuse-button__fuse {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  transform-origin: left center;
+  background: var(--fb-tone);
+  animation: fuse-button-burn var(--fb-window) linear forwards;
+  pointer-events: none;
+}
+[data-effects="fuse-button"][data-paused="true"] .fuse-button__fuse {
+  animation-play-state: paused;
+}
+@keyframes fuse-button-burn {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+/* BellToggle parity (components/effects/BellToggle): the bell swings on the way
+   on, the pill unfurls to the longer label through a 0fr→1fr grid, and the
+   badge pops its digit. Off = quiet outline, on = filled accent. */
+[data-effects="bell-toggle"] {
+  --bt-h: 32px;
+  --bt-fs: 12px;
+  --bt-icon: 15px;
+  --bt-px: 11px;
+  --bt-gap: 8px;
+  display: inline-flex;
+  align-items: center;
+}
+.bell-toggle__button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bt-gap);
+  height: var(--bt-h);
+  padding: 0 var(--bt-px);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--bt-h) / 2);
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--bt-fs);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--dur-med) var(--ease-out-warm),
+    border-color var(--dur-med) var(--ease-out-warm),
+    color var(--dur-med) var(--ease-out-warm);
+}
+.bell-toggle__button:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+[data-effects="bell-toggle"][data-on="true"] .bell-toggle__button {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  color: var(--on-accent);
+}
+.bell-toggle__button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.bell-toggle__bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--bt-icon);
+  height: var(--bt-icon);
+}
+.bell-toggle__glyph {
+  transform-origin: 50% 12%;
+}
+.bell-toggle__glyph[data-ringing="true"] {
+  animation: bell-toggle-ring 820ms cubic-bezier(0.77, 0, 0.175, 1);
+}
+@keyframes bell-toggle-ring {
+  0% { transform: rotate(0deg); }
+  14% { transform: rotate(15deg); }
+  30% { transform: rotate(-12deg); }
+  48% { transform: rotate(8deg); }
+  66% { transform: rotate(-4.5deg); }
+  84% { transform: rotate(2deg); }
+  100% { transform: rotate(0deg); }
+}
+.bell-toggle__badge {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--status-error) 18%, var(--bg-panel));
+  color: var(--status-error);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+.bell-toggle__digit {
+  animation: bell-toggle-digit var(--dur-med) var(--ease-out-warm);
+}
+@keyframes bell-toggle-digit {
+  from { opacity: 0; transform: translateY(-3px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+.bell-toggle__say {
+  display: inline-flex;
+  align-items: center;
+}
+/* Collapsed slot = 0fr; the active label opens it, so the pill grows into the
+   longer label instead of blinking between widths. */
+.bell-toggle__slot {
+  display: grid;
+  grid-template-columns: 0fr;
+  overflow: hidden;
+  transition: grid-template-columns var(--dur-med) var(--ease-out-warm);
+}
+.bell-toggle__slot[data-active="true"] {
+  grid-template-columns: 1fr;
+}
+.bell-toggle__face {
+  min-width: 0;
+  white-space: nowrap;
+  opacity: 0;
+  filter: blur(3px);
+  transition:
+    opacity var(--dur-med) var(--ease-out-warm),
+    filter var(--dur-med) var(--ease-out-warm);
+}
+.bell-toggle__slot[data-active="true"] .bell-toggle__face {
+  opacity: 1;
+  filter: blur(0);
+}
+/* CallChip parity (components/effects/CallChip): inline tool-call chip whose
+   fill wipes across while a live counter ticks, washing green on success or
+   stopping short and shaking red with a retry glyph on error. */
+[data-effects="call-chip"] {
+  --cc-tone: var(--accent);
+  --cc-h: 22px;
+  --cc-fs: 11px;
+  --cc-px: 8px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: var(--cc-h);
+  padding: 0 var(--cc-px);
+  border: 1px solid color-mix(in srgb, var(--cc-tone) 28%, var(--border));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--cc-tone) 5%, var(--bg));
+  color: var(--text-muted);
+  font-size: var(--cc-fs);
+  line-height: 1;
+  overflow: hidden;
+}
+[data-effects="call-chip"][data-size="md"] {
+  --cc-h: 26px;
+  --cc-fs: 12px;
+  --cc-px: 10px;
+}
+[data-effects="call-chip"][data-status="success"] {
+  --cc-tone: var(--status-success);
+}
+[data-effects="call-chip"][data-status="error"] {
+  --cc-tone: var(--status-error);
+  animation: call-chip-shake 260ms var(--ease-out-warm);
+}
+.call-chip__fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transform-origin: left center;
+  background: color-mix(in srgb, var(--cc-tone) 16%, transparent);
+  pointer-events: none;
+}
+[data-effects="call-chip"][data-status="running"] .call-chip__fill {
+  transform: scaleX(0);
+  animation: call-chip-wipe 1400ms var(--ease-out-warm) infinite;
+}
+.call-chip__name {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--cc-tone);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.call-chip__time {
+  position: relative;
+  flex: none;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.call-chip__retry {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--cc-tone);
+  cursor: pointer;
+}
+.call-chip__retry:hover {
+  background: color-mix(in srgb, var(--cc-tone) 18%, transparent);
+}
+@keyframes call-chip-wipe {
+  0% { transform: scaleX(0); opacity: 0.9; }
+  70% { transform: scaleX(1); opacity: 0.55; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+@keyframes call-chip-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  60% { transform: translateX(2px); }
+  85% { transform: translateX(-1px); }
 }
 /* Modal popups are centered via `transform: translate(-50%, -50%)`; the
    entrance animation must own that transform so it never fights the
@@ -3006,11 +3650,29 @@ html.dark .dropdown-surface :is(select, option) {
   from { opacity: 0; transform: translate3d(18px, 8px, 0) scale(0.97); }
   to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
+/* No forwards fill: the entrance animation must release opacity/transform so
+   the hover lift and the data-ending-style exit below can own them. */
 .toast-card {
-  animation: toast-in var(--dur-med) var(--ease-out-warm) both;
-  transition: transform var(--dur-fast) var(--ease-out-warm),
+  animation: toast-in var(--dur-med) var(--ease-out-warm);
+  cursor: grab;
+  transition: opacity var(--dur-fast) var(--ease-out-warm),
+              transform var(--dur-fast) var(--ease-out-warm),
               border-color var(--dur-fast) var(--ease-out-warm),
               box-shadow var(--dur-fast) var(--ease-out-warm);
+}
+/* base-ui owns the drag (swipeDirection defaults to down/right) and reports it
+   through data-swiping + --toast-swipe-movement-*; the shell only advertises
+   the grab affordance and drops its hover lift mid-drag. */
+.toast-card[data-swiping],
+.toast-card[data-swiping]:hover {
+  cursor: grabbing;
+  transform: none;
+}
+/* Exit: base-ui keeps the node while data-ending-style is set and waits for the
+   transition, so the card leaves the way it arrived. */
+.toast-card[data-ending-style] {
+  opacity: 0;
+  transform: translate3d(18px, 0, 0) scale(0.98);
 }
 .toast-card:hover {
   border-color: color-mix(in srgb, var(--accent) 30%, var(--border)) !important;
@@ -3722,33 +4384,7 @@ html.dark .dropdown-surface :is(select, option) {
   transition: background var(--dur-fast) var(--ease-out-warm), color var(--dur-fast) var(--ease-out-warm);
 }
 
-@keyframes notice-shelf-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.995);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes notice-shelf-out {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .notice-shelf-item {
-    animation-duration: 0.001ms !important;
-  }
-
   /* Honor the OS "reduce motion" preference across the board:
      - no smooth scrolling
      - collapse entrance/exit animations to (near) instant
