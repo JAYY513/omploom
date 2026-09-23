@@ -21,6 +21,8 @@ Forked from [ompweb](https://github.com/kahme247/ompweb) at commit `a44946d` (po
 
 ### Fixes & Improvements
 
+- Pick up manual `models.yml` price edits in a running server: rate resolution is memoized per config object now (one memo per parse/sync run), so a re-read of the file re-resolves instead of serving the first-seen rates forever. Newly synced rows re-price automatically; re-run the Usage page's Refresh to re-price the already-indexed history.
+
 - Restore the blocked todo marker's meaning in the composer task list: a blocked task now shows its own warning alert icon and sorts ahead of plain pending tasks in the collapsed preview, instead of reading as a plain pending ring. Also add a compact board (swimlane) layout toggle to the task panel, persisted per browser.
 - Refresh the OMP version shown in new sessions after a CLI update without requiring an omp-loom server restart. Reuse results while executable metadata is unchanged, with a five-minute fallback expiry for launchers. Keep the last known version visible between visits and distinguish initial loading from an unavailable runtime.
 - Restore copy-success feedback after React Strict Mode re-runs effect setup.

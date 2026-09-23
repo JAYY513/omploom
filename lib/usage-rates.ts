@@ -130,10 +130,28 @@ export function normalizeModelId(modelId: string): string {
   return clean;
 }
 
-const ratesCache = new Map<string, ModelRates | null>();
+/** Rate memos per config object (WeakMap): one parse/sync run shares one
+ * config object, so every record in it reuses the same memo while a re-read
+ * of models.yml (a new object, e.g. after a price edit) resolves fresh rates
+ * instead of serving the ones the process saw first. Local price-table
+ * lookups only — resolution never contacts a provider. */
+const customRatesCaches = new WeakMap<object, Map<string, ModelRates | null>>();
+const defaultRatesCache = new Map<string, ModelRates | null>();
+
+function ratesCacheFor(customConfig?: ModelsFileConfig | null): Map<string, ModelRates | null> {
+  if (!customConfig) return defaultRatesCache;
+  let cache = customRatesCaches.get(customConfig);
+  if (!cache) {
+    cache = new Map();
+    customRatesCaches.set(customConfig, cache);
+  }
+  return cache;
+}
 
 export function clearRatesCache(): void {
-  ratesCache.clear();
+  // Per-config memos die with their config object; only the shared default
+  // catalog memo is reachable from here.
+  defaultRatesCache.clear();
 }
 
 /**
@@ -148,9 +166,8 @@ export function resolveModelRates(
   if (!modelId) return null;
   const normProvider = provider ? provider.trim().toLowerCase() : "";
   const normModel = normalizeModelId(modelId);
-  const cacheKey = customConfig
-    ? `${normProvider}::${normModel}::custom`
-    : `${normProvider}::${normModel}::default`;
+  const cacheKey = `${normProvider}::${normModel}`;
+  const ratesCache = ratesCacheFor(customConfig);
   const cached = ratesCache.get(cacheKey);
   if (cached !== undefined) return cached;
 
