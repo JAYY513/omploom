@@ -97,6 +97,7 @@ export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, 
   const [homeDir, setHomeDir] = useState<string>("");
   // Managed + session-discovered projects (server-merged, hidden excluded).
   const [projects, setProjects] = useState<ManagedProject[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
   const [draggedProjectPath, setDraggedProjectPath] = useState<string | null>(null);
   const [projectsError, setProjectsError] = useState<string | null>(null);
   // Add-project picker state.
@@ -217,6 +218,7 @@ export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, 
   const projectsLoadSeqRef = useRef(0);
   const loadProjects = useCallback(async () => {
     const seq = ++projectsLoadSeqRef.current;
+    setProjectsLoading(true);
     try {
       const res = await fetch("/api/projects");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -229,6 +231,8 @@ export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, 
     } catch (e) {
       if (seq !== projectsLoadSeqRef.current) return;
       setProjectsError(t("projects.loadFailed", { detail: e instanceof Error ? e.message : String(e) }));
+    } finally {
+      if (seq === projectsLoadSeqRef.current) setProjectsLoading(false);
     }
   }, [t]);
 
@@ -1362,8 +1366,8 @@ export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, 
             minHeight: 80,
           }}
         >
-          {loading && (
-            <div style={{ padding: "10px 4px", color: "var(--text-muted)", fontSize: 12 }}>
+          {(loading || projectsLoading) && (
+            <div role="status" aria-busy="true" style={{ padding: "10px 4px", color: "var(--text-muted)", fontSize: 12 }}>
               {t("sessionSidebar.loading")}
             </div>
           )}
@@ -1373,12 +1377,12 @@ export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, 
           {error && (
             <div style={{ padding: "10px 4px", color: "var(--accent)", fontSize: 12 }}>{error}</div>
           )}
-          {!loading && !projectsError && !error && sortedProjects.length === 0 && (
+          {!loading && !projectsLoading && !projectsError && !error && sortedProjects.length === 0 && (
             <div style={{ padding: "10px 4px", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.5 }}>
               {t("projects.noProjects")}
             </div>
           )}
-          {!loading && !projectsError && !error && sortedProjects.length > 0 && visibleProjectEntries.length === 0 && (
+          {!loading && !projectsLoading && !projectsError && !error && sortedProjects.length > 0 && visibleProjectEntries.length === 0 && (
             <div style={{ padding: "14px 4px", color: "var(--text-dim)", fontSize: 11.5, lineHeight: 1.5 }}>
               {t("sessionSidebar.noMatches")}
             </div>
