@@ -1667,6 +1667,40 @@ pre, code {
   animation: sidebar-sessions-in var(--dur-med) var(--ease-out-warm) both;
   transform-origin: top center;
 }
+.session-tree-item {
+  position: relative;
+}
+.session-tree-connector {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  border-left: 1px solid color-mix(in srgb, var(--text-dim) 42%, transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+.session-tree-connector[data-terminal="true"] {
+  bottom: 15px;
+}
+.session-tree-connector::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  width: 9px;
+  height: 9px;
+  border-top: 1px solid color-mix(in srgb, var(--text-dim) 42%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--text-dim) 42%, transparent);
+  border-top-right-radius: 7px;
+}
+.session-tree-children {
+  animation: session-tree-children-in var(--dur-fast) var(--ease-out-warm) both;
+  transform-origin: top left;
+}
+@keyframes session-tree-children-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 @keyframes sidebar-sessions-in {
   from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
@@ -1893,7 +1927,7 @@ pre, code {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .sidebar-project-sessions, .sidebar-project-worktree, .composer-control-shelf { animation: none; }
+  .sidebar-project-sessions, .sidebar-project-worktree, .session-tree-children, .composer-control-shelf { animation: none; }
 }
 
 @media (max-width: 640px) {

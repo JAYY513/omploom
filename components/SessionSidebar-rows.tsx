@@ -426,7 +426,7 @@ function ProjectRow({
           ) : (
             <>
               <StaggerList stagger={24}>
-                {visibleRoots.map((node) => (
+                {visibleRoots.map((node, idx) => (
                   <SessionTreeItem
                     key={node.session.id}
                     node={node}
@@ -438,6 +438,7 @@ function ProjectRow({
                     onRenamed={onRenamed}
                     onSessionDeleted={onSessionDeleted}
                     depth={0}
+                    isLast={idx === visibleRoots.length - 1}
                   />
                 ))}
               </StaggerList>
@@ -743,6 +744,7 @@ const SessionTreeItem = memo(function SessionTreeItem({
   onRenamed,
   onSessionDeleted,
   depth,
+  isLast,
 }: {
   node: SessionTreeNode;
   selectedSessionId: string | null;
@@ -753,6 +755,7 @@ const SessionTreeItem = memo(function SessionTreeItem({
   onRenamed?: () => void;
   onSessionDeleted?: (id: string) => void;
   depth: number;
+  isLast: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const hasChildren = node.children.length > 0;
@@ -777,19 +780,9 @@ const SessionTreeItem = memo(function SessionTreeItem({
   }, []);
 
   return (
-    <div>
-      <div style={{ position: "relative" }}>
-        {/* Indent line for child sessions */}
-        {depth > 0 && (
-          <div style={{
-            position: "absolute",
-            left: depth * 14 + 22,
-            top: 0, bottom: 0,
-            width: 1,
-            background: "var(--border)",
-            pointerEvents: "none",
-          }} />
-        )}
+    <div className="session-tree-item">
+      {depth > 0 && <div className="session-tree-connector" data-terminal={isLast && !hasChildren ? "true" : undefined} style={{ left: depth * 14 + 22 }} aria-hidden="true" />}
+      <div style={{ position: "relative", zIndex: 1 }}>
         <SessionItem
           session={node.session}
           isSelected={isSelected}
@@ -806,8 +799,8 @@ const SessionTreeItem = memo(function SessionTreeItem({
         />
       </div>
       {hasChildren && !collapsed && (
-        <div>
-          {node.children.map((child) => (
+        <div className="session-tree-children">
+          {node.children.map((child, idx) => (
             <SessionTreeItem
               key={child.session.id}
               node={child}
@@ -819,6 +812,7 @@ const SessionTreeItem = memo(function SessionTreeItem({
               onRenamed={onRenamed}
               onSessionDeleted={onSessionDeleted}
               depth={depth + 1}
+              isLast={idx === node.children.length - 1}
             />
           ))}
         </div>
@@ -1025,7 +1019,6 @@ const SessionItem = memo(function SessionItem({
         <input ref={inputRef} autoFocus aria-label={t("sessionSidebar.rename")} value={renameValue} onChange={(event) => setRenameValue(event.target.value)} onBlur={commitRename} onKeyDown={(event) => { if (event.key === "Enter") void commitRename(); if (event.key === "Escape") { event.preventDefault(); renameCancelRef.current = true; setRenaming(false); } }} style={{ flex: 1, height: 25, padding: "3px 7px", border: "1px solid var(--accent)", borderRadius: "var(--radius-control)", outline: "none", background: "var(--bg)", color: "var(--text)", fontSize: 12 }} />
       ) : (
         <>
-          {depth > 0 && <GitBranch size={11} strokeWidth={2} style={{ flexShrink: 0, color: "var(--text-dim)" }} aria-hidden="true" />}
           <button ref={contentButtonRef} type="button" className="session-item-button" aria-current={isSelected ? "true" : undefined} onKeyDown={(event) => { if (event.key === "Delete" && !deleting) { event.preventDefault(); setConfirmDelete(true); } }} style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
             <span title={title} style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text)", fontSize: 12.5, fontWeight: isSelected ? 600 : 500, lineHeight: 1.35, letterSpacing: "-0.005em" }}>
               {title}
