@@ -97,6 +97,11 @@ const UsageStats = dynamic(() => import("./UsageStats").then((m) => m.UsageStats
   ssr: false,
 });
 
+/** Full-page cross-workspace task board; lazy for the same reason. */
+const TasksBoard = dynamic(() => import("./TasksBoard").then((m) => m.TasksBoard), {
+  ssr: false,
+});
+
 type AutoNameStatus =
   | { kind: "idle" }
   | { kind: "naming" }
@@ -129,6 +134,8 @@ export function AppShell() {
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   /** Full-page usage dashboard (usage stats across every workspace). */
   const [usageOpen, setUsageOpen] = useState(false);
+  /** Full-page cross-workspace task board (running/finished/usage per session). */
+  const [tasksOpen, setTasksOpen] = useState(false);
   const [archiveBrowserOpen, setArchiveBrowserOpen] = useState(false);
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1091,6 +1098,7 @@ export function AppShell() {
     // ChatWindow, reconnects SSE, and drops the mid-run streaming view.
     setSettingsTab(null);
     setUsageOpen(false);
+    setTasksOpen(false);
     // Re-picking the current conversation still closes/rearms the drawer,
     // without remounting the chat or disturbing its draft.
     if (isMobile && !isRestore) setSidebarOpen(false);
@@ -1119,6 +1127,7 @@ export function AppShell() {
   const handleNewSession = useCallback((_sessionId: string, cwd: string) => {
     setSettingsTab(null);
     setUsageOpen(false);
+    setTasksOpen(false);
     setSelectedSession(null);
     setNewSessionCwd(cwd);
     setSessionKey((k) => k + 1);
@@ -1524,9 +1533,10 @@ export function AppShell() {
       setAddProjectOpen={setAddProjectOpen}
       usageVisible={providerUsageVisible}
       settingsOpen={Boolean(settingsTab)}
-      onOpenSettings={() => { setUsageOpen(false); setSettingsTab((prev) => prev ? null : "general"); }}
-      usageOpen={usageOpen}
-      onOpenUsage={() => { setSettingsTab(null); setUsageOpen((prev) => !prev); }}
+      onOpenSettings={() => { setUsageOpen(false); setTasksOpen(false); setSettingsTab((prev) => prev ? null : "general"); }}
+      onOpenUsage={() => { setSettingsTab(null); setTasksOpen(false); setUsageOpen((prev) => !prev); }}
+      tasksOpen={tasksOpen}
+      onOpenTasks={() => { setSettingsTab(null); setUsageOpen(false); setTasksOpen((prev) => !prev); }}
       onOpenArchive={() => setArchiveBrowserOpen(true)}
       updateAvailable={Boolean(appUpdate?.updateAvailable) || ompUpdateAvailable}
     />
@@ -1547,7 +1557,8 @@ export function AppShell() {
       />
       <CommandPalette
         onSelectSession={handleSelectSession}
-        onOpenUsage={() => { setSettingsTab(null); setUsageOpen(true); }}
+        onOpenUsage={() => { setSettingsTab(null); setTasksOpen(false); setUsageOpen(true); }}
+        onOpenTasks={() => { setSettingsTab(null); setUsageOpen(false); setTasksOpen(true); }}
         onNewSession={() => {
           // An empty cwd is truthy, so showChat would render the shell while
           // useAgentSession refuses to start — every send a silent no-op.
@@ -1632,7 +1643,7 @@ export function AppShell() {
     `}</style>
     <div style={{ display: "flex", height: "100%", flex: 1, overflow: "hidden", background: "var(--bg)" }}>
       {/* Left sidebar: hidden on full-page Settings */}
-      {!settingsTab && !usageOpen && (
+      {!settingsTab && !usageOpen && !tasksOpen && (
         <>
       {/* Mobile overlay backdrop */}
       <div
@@ -1701,7 +1712,9 @@ export function AppShell() {
 
       {/* Center: chat */}
       <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-        {usageOpen ? (
+        {tasksOpen ? (
+          <TasksBoard onClose={() => setTasksOpen(false)} onSelectSession={handleSelectSession} />
+        ) : usageOpen ? (
           <UsageStats onClose={() => setUsageOpen(false)} />
         ) : settingsTab ? (
           <SettingsConfig
@@ -2175,7 +2188,7 @@ export function AppShell() {
           </>
         )}
       </main>
-      {!settingsTab && !usageOpen && (
+      {!settingsTab && !usageOpen && !tasksOpen && (
         <RightPanel
         fileTabs={fileTabs}
         activeFileTabId={activeFileTabId}
@@ -2222,7 +2235,7 @@ export function AppShell() {
       )}
 
     </div>
-    {!settingsTab && !usageOpen && (
+    {!settingsTab && !usageOpen && !tasksOpen && (
       <button
       onClick={() => setRightPanelOpen((v) => !v)}
       title={rightPanelOpen ? t("appShell.hideFilePanel") : t("appShell.showFilePanel")}

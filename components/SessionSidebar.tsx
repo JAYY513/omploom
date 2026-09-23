@@ -12,7 +12,7 @@ import { toast } from "./ui/toast";
 import { clearLastOpenSession, setLastOpenSession, workspaceKeyOf } from "@/lib/workspace-memory";
 import { groupSessionsByProject, projectActivityCounts, sortManagedProjects } from "@/lib/project-ordering";
 import { comparableProjectPath } from "@/lib/comparable-path";
-import { Archive, BarChart3, Check, ChevronRight, FileUp, Plus, RefreshCw, Search, Settings2, SlidersHorizontal } from "lucide-react";
+import { Activity, Archive, BarChart3, Check, ChevronRight, FileUp, Plus, RefreshCw, Search, Settings2, SlidersHorizontal } from "lucide-react";
 import { publishSessionsChanged } from "@/lib/session-change-bus";
 import {
   EMPTY_PROJECT_SET,
@@ -69,6 +69,10 @@ interface Props {
   usageOpen?: boolean;
   /** Opens the full-page usage dashboard (pinned footer row). */
   onOpenUsage?: () => void;
+  /** True when the full-page task board is open. */
+  tasksOpen?: boolean;
+  /** Opens the full-page task board (pinned footer row). */
+  onOpenTasks?: () => void;
   /** True when an omp/omploom update is available — shows a badge on the gear. */
   updateAvailable?: boolean;
   /** Opens the archived sessions browser. */
@@ -82,7 +86,7 @@ interface Props {
 
 
 
-export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, optimisticSession, onSelectSession, onNewSession, initialSessionId, skipInitialProjectSelection, onInitialRestoreDone, refreshKey, onSessionDeleted, selectedCwd: selectedCwdProp, onCwdChange, onWorkspaceOptionsChange, addProjectOpen, setAddProjectOpen, usageVisible = true, onOpenSettings, onOpenArchive, updateAvailable, settingsOpen = false, usageOpen = false, onOpenUsage }: Props) {
+export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, optimisticSession, onSelectSession, onNewSession, initialSessionId, skipInitialProjectSelection, onInitialRestoreDone, refreshKey, onSessionDeleted, selectedCwd: selectedCwdProp, onCwdChange, onWorkspaceOptionsChange, addProjectOpen, setAddProjectOpen, usageVisible = true, onOpenSettings, onOpenArchive, updateAvailable, settingsOpen = false, usageOpen = false, onOpenUsage, tasksOpen = false, onOpenTasks }: Props) {
 
 
   const { t } = useI18n();
@@ -1432,7 +1436,7 @@ export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, 
 
       {/* Provider usage bar — pinned above Settings */}
       {usageVisible && <ProviderUsageBar />}
-      {/* Pinned footer: Usage | Settings */}
+      {/* Pinned footer: Usage | Tasks | Settings */}
       <div style={{ borderTop: "1px solid var(--border)", flexShrink: 0 }}>
         {onOpenUsage && (
           <button
@@ -1464,6 +1468,55 @@ export const SessionSidebar = memo(function SessionSidebar({ selectedSessionId, 
             </span>
             <span style={{ fontSize: 12, fontWeight: usageOpen ? 600 : 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {t("usageStats.title")}
+            </span>
+          </button>
+        )}
+        {onOpenTasks && (
+          <button
+            className="sidebar-settings-row"
+            data-active={tasksOpen}
+            onClick={onOpenTasks}
+            title={t("tasksBoard.title")}
+            aria-label={t("tasksBoard.title")}
+            style={{
+              width: "100%",
+              height: 36,
+              boxSizing: "border-box",
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              padding: "0 12px",
+              background: tasksOpen ? "var(--bg-selected)" : "none",
+              border: "none",
+              color: tasksOpen ? "var(--text)" : "var(--text-muted)",
+              cursor: "pointer",
+              textAlign: "left",
+              transition: SIDEBAR_BUTTON_TRANSITION,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = tasksOpen ? "var(--bg-selected)" : "var(--bg-hover)"; e.currentTarget.style.color = "var(--text)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = tasksOpen ? "var(--bg-selected)" : "none"; e.currentTarget.style.color = tasksOpen ? "var(--text)" : "var(--text-muted)"; }}
+          >
+            <span style={{ position: "relative", display: "inline-flex", flexShrink: 0, color: "var(--accent)" }}>
+              <Activity size={14} strokeWidth={2} aria-hidden="true" />
+              {(() => {
+                // unread ids act as sticky tombstones for deleted sessions:
+                // they stay until the session reappears or the user opens the
+                // board's Mark-all-read. The badge therefore counts them even
+                // when their rows no longer exist.
+                const attention = runningSessionIds.size + unreadSessionIds.size;
+                return attention > 0 ? (
+                  <span
+                    role="status"
+                    aria-label={t("tasksBoard.attentionBadge", { count: attention })}
+                    style={{ position: "absolute", top: -3, right: -4, minWidth: 12, height: 12, padding: "0 2px", boxSizing: "border-box", borderRadius: 6, background: "var(--accent)", border: "1px solid var(--bg-panel)", color: "var(--bg-panel)", fontSize: 8, fontWeight: 700, lineHeight: "10px", textAlign: "center" }}
+                  >
+                    {attention > 9 ? "9+" : attention}
+                  </span>
+                ) : null;
+              })()}
+            </span>
+            <span style={{ fontSize: 12, fontWeight: tasksOpen ? 600 : 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {t("tasksBoard.title")}
             </span>
           </button>
         )}

@@ -142,3 +142,55 @@ test("completed rows render the spring check mark", () => {
   assert.match(html, /data-effects="spring-check"/);
   assert.match(html, /Ship it/);
 });
+
+test("board view renders compact phase swimlanes", () => {
+  const html = renderToStaticMarkup(React.createElement(TodoList, {
+    phases: [
+      { id: "p1", name: "Build", tasks: [{ content: "One", status: "completed" }, { content: "Two", status: "in_progress" }] },
+      { id: "p2", name: "Verify", tasks: [{ content: "Check it", status: "blocked", blocker: "Server unavailable" }] },
+    ],
+    defaultView: "board",
+  }));
+
+  // Each phase renders as its own swimlane with a per-lane done/total count.
+  assert.match(html, /data-todo-lane="Build"/);
+  assert.match(html, /data-todo-lane="Verify"/);
+  assert.match(html, /1\/2/);
+  assert.match(html, /0\/1/);
+  // Tasks stay announced with their status, blockers included.
+  assert.match(html, /Check it/);
+  assert.match(html, /Blocked: Server unavailable/);
+  // The swimlane scroller keeps the same cap and keyboard reachability.
+  assert.match(html, /max-height:min\(30vh,\s*240px\)/);
+  assert.match(html, /tabindex="0"/);
+});
+
+test("blocked tasks render the warning alert icon, not a pending ring", () => {
+  const html = renderToStaticMarkup(React.createElement(TodoList, {
+    phases: [{ name: "Tasks", tasks: [{ content: "Stuck step", status: "blocked", blocker: "no disk" }] }],
+  }));
+  // Distinct glyph in the warning tone — blocked no longer collapses into
+  // StatusMark's pending branch.
+  assert.match(html, /lucide-circle-alert/);
+  assert.match(html, /var\(--status-warning\)/);
+});
+
+test("blocked tasks surface in the preview window before pending ones", () => {
+  const html = renderToStaticMarkup(React.createElement(TodoList, {
+    phases: [{
+      name: "Tasks",
+      tasks: [
+        { content: "Pending one", status: "pending" },
+        { content: "Pending two", status: "pending" },
+        { content: "Blocked one", status: "blocked", blocker: "x" },
+      ],
+    }],
+    defaultView: "board",
+  }));
+  // Preview budget is 5 — everything fits, but ordering still puts the live
+  // work first.
+  const blockedAt = html.indexOf("Blocked one");
+  const pendingAt = html.indexOf("Pending one");
+  assert.ok(blockedAt !== -1 && pendingAt !== -1);
+  assert.ok(blockedAt < pendingAt, "blocked sorts ahead of plain pending");
+});

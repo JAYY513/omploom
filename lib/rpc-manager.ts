@@ -1510,6 +1510,21 @@ export function getRunningRpcSessionIds(): string[] {
   return getRunningRpcSessions().map((s) => s.id);
 }
 
+/**
+ * Every session id with a live wrapper in the registry, running or idle.
+ * Consumers that infer activity from other signals (disk writes for terminal
+ * runs) must exclude these ids: the wrapper knows the exact running state,
+ * while a just-finished loom run's still-fresh transcript would otherwise
+ * read as "running" again.
+ */
+export function getRegistrySessionIds(): string[] {
+  const ids: string[] = [];
+  for (const [sessionId, session] of getRegistry()) {
+    ids.push(session.sessionId || sessionId);
+  }
+  return ids;
+}
+
 /** Stop all live omp children after an explicit runtime update. The browser will
  * reconnect sessions on demand and start them with the updated executable. */
 export async function restartAllRpcSessions(): Promise<number> {

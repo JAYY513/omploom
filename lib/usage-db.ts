@@ -589,6 +589,88 @@ export function buildUsageOverview(db: DatabaseSync, now = Date.now()): UsageOve
     activity,
   };
 }
+/** Per-file usage summary consumed by the tasks board (main transcript only). */
+export interface TaskUsageSummary {
+  tokens: number;
+  cost: number;
+  activeMs: number;
+  modelMs: number;
+  messages: number;
+  startedAt: number;
+  endedAt: number;
+  /** Latest provider/model seen in this file's main-transcript records. */
+  provider: string;
+  model: string;
+}
+
+/**
+ * Batch-read per-file usage for a bounded set of session files. Keyed by
+ * file_path (the session_stats PK / an indexed usage_records column) so no
+ * schema or index change is needed. Files without rows are simply absent.
+ */
+export function getTaskUsageForFiles(
+  db: DatabaseSync,
+  filePaths: readonly string[],
+): Map<string, TaskUsageSummary> {
+  const result = new Map<string, TaskUsageSummary>();
+  const files = [...new Set(filePaths.filter((p) => typeof p === "string" && p.length > 0))];
+  if (files.length === 0) return result;
+  // Stay under SQLITE_LIMIT_VARIABLE_NUMBER on every chunk.
+  for (let i = 0; i < files.length; i += 500) {
+    const group = files.slice(i, i + 500);
+    const placeholders = group.map(() => "?").join(",");
+    const statRows = db.prepare(
+      `SELECT file_path, started_at, ended_at, active_ms, model_ms, tokens, cost, messages
+       FROM session_stats
+       WHERE agent = 'main' AND file_path IN (${placeholders})`,
+    ).all(...group) as Array<{
+      file_path: string; started_at: number; ended_at: number; active_ms: number;
+      model_ms: number; tokens: number; cost: number; messages: number;
+    }>;
+    for (const row of statRows) {
+      result.set(row.file_path, {
+        tokens: row.tokens,
+        cost: row.cost,
+        activeMs: row.active_ms,
+        modelMs: row.model_ms,
+        messages: row.messages,
+        startedAt: row.started_at,
+        endedAt: row.ended_at,
+        provider: "",
+        model: "",
+      });
+    }
+    const modelRows = db.prepare(
+      `SELECT file_path, provider, model FROM (
+         SELECT file_path, provider, model,
+           ROW_NUMBER() OVER (PARTITION BY file_path ORDER BY timestamp DESC, rowid DESC) AS rn
+         FROM usage_records
+         WHERE agent = 'main' AND file_path IN (${placeholders})
+       ) WHERE rn = 1`,
+    ).all(...group) as Array<{ file_path: string; provider: string; model: string }>;
+    for (const row of modelRows) {
+      const existing = result.get(row.file_path);
+      if (existing) {
+        existing.provider = row.provider;
+        existing.model = row.model;
+      } else {
+        result.set(row.file_path, {
+          tokens: 0,
+          cost: 0,
+          activeMs: 0,
+          modelMs: 0,
+          messages: 0,
+          startedAt: 0,
+          endedAt: 0,
+          provider: row.provider,
+          model: row.model,
+        });
+      }
+    }
+  }
+  return result;
+}
+
 
 /**
  * Execute SQL analytics queries over the SQLite database to generate a full UsageReport.

@@ -116,7 +116,12 @@ components/
   ChatInput-thinking-slider.tsx  PromptBar effort view (drag slider); traditional list behind "Show all…"
   ChatInput-max-sparks.tsx  PromptBar max-effort field effect (glow wash + rising sparks canvas)
   ComposerPanels.tsx  composer-attached todo + subagent panels (collapsible, live states)
-  TodoList.tsx        todo phase grid with preview/show-all (used by ComposerPanels)
+  TasksBoard.tsx      full-page task board: three-lane attention board (running/review/read,
+                      per-lane project grouping toggle), summary bar (counts + today burn),
+                      project chips + title search, collapsible lanes (persisted),
+                      live stopwatch + ctx gauge on running cards, disk-detected terminal runs
+  TodoList.tsx        todo phase list/board (compact swimlanes) views with preview/show-all
+                      (used by ComposerPanels); blocked tasks render a warning alert icon
   SubagentTranscriptDialog.tsx  task + final output summary dialog (wide, screen-adaptive)
   MessageView.tsx     renders one message (user/assistant/toolCall/toolResult)
   CommandPalette.tsx  ⌘K/Ctrl+K palette (cmdk): session switch, new session, theme, usage
