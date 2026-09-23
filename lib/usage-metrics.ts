@@ -364,6 +364,14 @@ export interface ModelUsageInput {
   provider: string;
   tokens: number;
   cost: number;
+  /** Mean net-new tokens per task (one task = one user prompt). */
+  avgTokensPerTask: number;
+  /** Mean cost per task; tie-break for the per-task orderings. */
+  avgCostPerTask: number;
+  /** Lower median net-new tokens per task. */
+  medianTokensPerTask: number;
+  /** Tasks (user prompts) this model took part in. */
+  taskCount: number;
 }
 
 export interface RankedModelUsage<T extends ModelUsageInput> {
@@ -375,13 +383,27 @@ export interface RankedModelUsage<T extends ModelUsageInput> {
 }
 
 /** Active ordering for the model-usage list. */
-export type ModelSortKey = "tokens" | "cost";
+export type ModelSortKey = "tokens" | "cost" | "taskAvg" | "taskMedian" | "taskCost" | "taskCount";
+
+type ModelSortMetric =
+  | "tokens"
+  | "cost"
+  | "avgTokensPerTask"
+  | "avgCostPerTask"
+  | "medianTokensPerTask"
+  | "taskCount";
 
 /** Primary then tie-break metric per ordering: cost-first falls back to
- * tokens, tokens-first falls back to cost. */
-const MODEL_SORT_KEYS: Record<ModelSortKey, readonly ["tokens" | "cost", "tokens" | "cost"]> = {
+ * tokens, tokens-first falls back to cost, the per-task orderings fall back to
+ * avg tokens per task (cost-per-task falls back to it too, so equal prices put
+ * the bigger eater first). */
+const MODEL_SORT_KEYS: Record<ModelSortKey, readonly [ModelSortMetric, ModelSortMetric]> = {
   tokens: ["tokens", "cost"],
   cost: ["cost", "tokens"],
+  taskAvg: ["avgTokensPerTask", "avgCostPerTask"],
+  taskMedian: ["medianTokensPerTask", "avgTokensPerTask"],
+  taskCost: ["avgCostPerTask", "avgTokensPerTask"],
+  taskCount: ["taskCount", "avgTokensPerTask"],
 };
 
 /** Rank models by the active sort key (default tokens). The bars always draw

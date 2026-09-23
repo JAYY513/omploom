@@ -105,7 +105,10 @@ export function getUsageDatabase(customPath?: string): DatabaseSync {
       -- Local calendar day of the timestamp column. Materialized at write
       -- time: the dashboard's day rollups otherwise ran strftime() over every
       -- row on each request (seconds per call on a six-figure row count).
-      day TEXT NOT NULL DEFAULT ''
+      day TEXT NOT NULL DEFAULT '',
+      -- 1-based user-prompt turn within file_path: (file_path, turn_index) is
+      -- one task (one user prompt) for the per-task averages.
+      turn_index INTEGER NOT NULL DEFAULT 0
     );
 
 
@@ -163,8 +166,10 @@ export function getUsageDatabase(customPath?: string): DatabaseSync {
  * would otherwise keep the DEFAULT 'main' and silently fold subagent spend
  * into the parent session. Version 2 added profile attribution ('' = default
  * profile) so usage from `omp --profile <name>` trees is counted and labelled.
+ * Version 3 added turn_index (task = one user prompt): pre-v3 rows all carry
+ * turn 0 and would compute per-task averages against a phantom single task.
  */
-const USAGE_SCHEMA_VERSION = 2;
+const USAGE_SCHEMA_VERSION = 3;
 
 function tableColumns(db: DatabaseSync, table: string): string[] {
   return (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map((row) => row.name);
@@ -188,6 +193,10 @@ function migrateUsageSchema(db: DatabaseSync): void {
   }
   if (!columns.includes("profile")) {
     db.exec("ALTER TABLE usage_records ADD COLUMN profile TEXT NOT NULL DEFAULT ''");
+    addedColumn = true;
+  }
+  if (!columns.includes("turn_index")) {
+    db.exec("ALTER TABLE usage_records ADD COLUMN turn_index INTEGER NOT NULL DEFAULT 0");
     addedColumn = true;
   }
   const sessionColumns = tableColumns(db, "session_stats");
@@ -301,12 +310,12 @@ export async function syncUsageFiles(input: UsageSyncInput): Promise<SyncStats> 
       file_path, session_id, session_cwd, timestamp, provider, model,
       input_tokens, output_tokens, reasoning_tokens, cache_read_tokens,
       cache_write_tokens, total_tokens, cost, cache_savings, cost_quality,
-      agent, profile, duration_ms, day
+      agent, profile, duration_ms, day, turn_index
     ) VALUES (
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?,
       ?, ?, ?, ?, ?,
-      ?, ?, ?, ?
+      ?, ?, ?, ?, ?
     )
   `);
   const insertSessionStmt = db.prepare(`
@@ -404,6 +413,7 @@ export async function syncUsageFiles(input: UsageSyncInput): Promise<SyncStats> 
           record.profile,
           record.durationMs,
           toLocalDayKey(record.timestamp),
+          record.turnIndex,
         );
         recordsInserted++;
       }
@@ -968,15 +978,77 @@ export async function getUsageReportFromDb(
     recordsCount: number;
   }>;
 
-  const modelBreakdown: ModelUsageSummary[] = modelRows.map((row) => ({
-    ...row,
-    share:
-      totalCost > 0
-        ? (row.cost / totalCost) * 100
-        : totalTokens > 0
-          ? (row.tokens / totalTokens) * 100
-          : 0,
-  }));
+  // Per-task stats per model. One task is one user prompt (turn) in one
+  // transcript: (file_path, turn_index). Net-new tokens (total minus cache
+  // reads) measure what the task itself consumed — cache reads re-bill the
+  // whole running history and would measure conversation length, not task
+  // size. The median guards the mean against the heavy tail (one giant
+  // refactor otherwise dominates a small sample).
+  const perTaskRows = db
+    .prepare(
+      `
+      WITH per_task AS (
+        SELECT
+          model,
+          provider,
+          SUM(total_tokens - cache_read_tokens) AS net_tokens,
+          SUM(cost) AS task_cost
+        FROM usage_records
+        WHERE timestamp >= ? AND timestamp <= ? ${whereProject}
+        GROUP BY model, provider, file_path, turn_index
+      ),
+      numbered AS (
+        SELECT
+          model,
+          provider,
+          net_tokens,
+          task_cost,
+          ROW_NUMBER() OVER (PARTITION BY model, provider ORDER BY net_tokens) AS rn,
+          COUNT(*) OVER (PARTITION BY model, provider) AS cnt
+        FROM per_task
+      )
+      SELECT
+        model,
+        provider,
+        COUNT(*) AS taskCount,
+        AVG(net_tokens) AS avgTokensPerTask,
+        AVG(task_cost) AS avgCostPerTask,
+        -- Lower median for even task counts (rn = (cnt + 1) / 2).
+        MAX(CASE WHEN rn = (cnt + 1) / 2 THEN net_tokens END) AS medianTokensPerTask
+      FROM numbered
+      GROUP BY model, provider
+    `,
+    )
+    .all(...params) as Array<{
+    model: string;
+    provider: string;
+    taskCount: number;
+    avgTokensPerTask: number;
+    avgCostPerTask: number;
+    medianTokensPerTask: number | null;
+  }>;
+
+  const perTaskByModel = new Map<string, (typeof perTaskRows)[number]>();
+  for (const row of perTaskRows) {
+    perTaskByModel.set(`${row.provider}/${row.model}`, row);
+  }
+
+  const modelBreakdown: ModelUsageSummary[] = modelRows.map((row) => {
+    const perTask = perTaskByModel.get(`${row.provider}/${row.model}`);
+    return {
+      ...row,
+      taskCount: perTask?.taskCount ?? 0,
+      avgTokensPerTask: perTask?.avgTokensPerTask ?? 0,
+      medianTokensPerTask: perTask?.medianTokensPerTask ?? 0,
+      avgCostPerTask: perTask?.avgCostPerTask ?? 0,
+      share:
+        totalCost > 0
+          ? (row.cost / totalCost) * 100
+          : totalTokens > 0
+            ? (row.tokens / totalTokens) * 100
+            : 0,
+    };
+  });
 
   // 5. Day Breakdown Query
   const dayRows = db

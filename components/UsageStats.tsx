@@ -27,6 +27,22 @@ const HEATMAP_MODES: HeatmapMode[] = ["daily", "weekly", "cumulative"];
 /** Model rows shown before "show all"; a 30-day window easily holds 30+. */
 const MODEL_PREVIEW_ROWS = 6;
 
+/** Sort segment labels; each names the exact value the rows highlight. */
+const SORT_LABEL_KEYS: Record<ModelSortKey, string> = {
+  tokens: "usageStats.sortByTokens",
+  cost: "usageStats.sortByCost",
+  taskAvg: "usageStats.sortByTaskAvg",
+  taskMedian: "usageStats.sortByTaskMedian",
+  taskCost: "usageStats.sortByTaskCost",
+  taskCount: "usageStats.sortByTaskCount",
+};
+
+/** The value the list is ordered by reads brighter, so the active sort is
+ * legible from the rows alone. */
+function sortedMetricStyle(active: boolean) {
+  return active ? ({ color: "var(--text)", fontWeight: 600 } as const) : undefined;
+}
+
 const HEATMAP_LEVEL_COLORS = [
   "var(--bg-subtle)",
   "color-mix(in srgb, var(--accent) 22%, transparent)",
@@ -642,12 +658,9 @@ export function UsageStats({ onClose }: { onClose: () => void }) {
           </div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             {segmented(
-              (["tokens", "cost"] as const).map((key) => ({
+              (["tokens", "cost", "taskAvg", "taskMedian", "taskCost", "taskCount"] as const).map((key) => ({
                 key,
-                label:
-                  key === "tokens"
-                    ? t("usageStats.sortByTokens")
-                    : t("usageStats.sortByCost"),
+                label: t(SORT_LABEL_KEYS[key]),
                 active: modelSort === key,
                 onClick: () => setModelSort(key),
               })),
@@ -694,12 +707,35 @@ export function UsageStats({ onClose }: { onClose: () => void }) {
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, fontSize: 12 }}>
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.label}</span>
                   <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>
-                    {tokens(entry.row.tokens)} · {formatCost(entry.row.cost)}
+                    <span style={sortedMetricStyle(modelSort === "tokens")}>{tokens(entry.row.tokens)}</span>
+                    {" · "}
+                    <span style={sortedMetricStyle(modelSort === "cost")}>{formatCost(entry.row.cost)}</span>
                   </span>
                 </div>
                 <div style={{ height: 6, borderRadius: 3, background: "var(--bg-subtle)", overflow: "hidden" }}>
                   <div style={{ width: `${entry.shareOfMax}%`, height: "100%", background: "var(--accent)" }} />
                 </div>
+                {entry.row.taskCount > 0 && (
+                  <div style={{ fontSize: 11, color: "var(--text-dim)", display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    <span>{t("usageStats.perTaskAvgLabel")}</span>
+                    <span style={sortedMetricStyle(modelSort === "taskAvg")}>
+                      {tokens(entry.row.avgTokensPerTask)}
+                    </span>
+                    <span>
+                      ({t("usageStats.perTaskMedianLabel")}{" "}
+                      <span style={sortedMetricStyle(modelSort === "taskMedian")}>
+                        {tokens(entry.row.medianTokensPerTask)}
+                      </span>
+                      )
+                    </span>
+                    <span style={sortedMetricStyle(modelSort === "taskCost")}>
+                      {formatCost(entry.row.avgCostPerTask)}
+                    </span>
+                    <span style={sortedMetricStyle(modelSort === "taskCount")}>
+                      {t("usageStats.perTaskCount", { count: entry.row.taskCount })}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>

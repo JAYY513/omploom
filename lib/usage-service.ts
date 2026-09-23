@@ -224,6 +224,7 @@ function buildUsageRecord(args: {
   agent: UsageAgentKind;
   profile: string;
   durationMs: number;
+  turnIndex: number;
   config: ModelsFileConfig;
 }): UsageRecord | null {
   const { rawUsage } = args;
@@ -264,6 +265,9 @@ function buildUsageRecord(args: {
     agent: args.agent,
     profile: args.profile,
     durationMs: args.durationMs,
+    // Aux calls that precede the first user prompt join turn 1: a transcript's
+    // activity is never "turn 0".
+    turnIndex: Math.max(1, args.turnIndex),
   };
 }
 
@@ -317,6 +321,7 @@ export function parseTranscriptUsage(
   let activeModel = "";
   const records: UsageRecord[] = [];
   const turnTimestamps: number[] = [];
+  let turnIndex = 0;
 
   try {
     forEachFileLineSync(filePath, (rawLine) => {
@@ -375,6 +380,7 @@ export function parseTranscriptUsage(
           agent,
           profile,
           durationMs: 0,
+          turnIndex,
           config: customModelsConfig,
         });
         if (record) records.push(record);
@@ -390,6 +396,9 @@ export function parseTranscriptUsage(
 
       const timestamp = messageTimestamp(msg.timestamp, parsed.timestamp, headerTimestamp);
       turnTimestamps.push(timestamp);
+      // A user prompt opens a new task turn; branch siblings answering the
+      // same prompt stay inside it.
+      if (role === "user") turnIndex += 1;
       if (role !== "assistant") return;
 
       const rawUsage = isRecord(msg.usage) ? msg.usage : undefined;
@@ -407,6 +416,7 @@ export function parseTranscriptUsage(
         durationMs: typeof msg.duration === "number" && Number.isFinite(msg.duration) && msg.duration > 0
           ? msg.duration
           : 0,
+        turnIndex,
         config: customModelsConfig,
       });
       if (record) records.push(record);

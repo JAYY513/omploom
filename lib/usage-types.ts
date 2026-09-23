@@ -35,6 +35,9 @@ export interface UsageRecord {
   profile: string;
   /** Wall-clock duration of the model call in ms (0 when unreported). */
   durationMs: number;
+  /** 1-based user-prompt turn inside the transcript: every call between user
+   * prompt N and N+1 belongs to turn N. One turn is the report's "task". */
+  turnIndex: number;
 }
 
 /** Per-transcript rollup: one row per session file, subagents included. */
@@ -129,6 +132,16 @@ export interface ModelUsageSummary {
   reasoningTokens: number;
   share: number; // 0-100 percentage
   recordsCount: number;
+  /** Distinct (transcript, turn) tasks this model made calls in; one task is
+   * one user prompt. A turn that switched models counts for both models. */
+  taskCount: number;
+  /** Net-new tokens (total minus cache reads) per task: cache reads re-bill
+   * the whole running history and would measure conversation length. */
+  avgTokensPerTask: number;
+  /** Lower median of per-task net-new tokens; guards the mean against the
+   * heavy tail (one giant refactor otherwise dominates a small sample). */
+  medianTokensPerTask: number;
+  avgCostPerTask: number;
 }
 
 export interface TimeSeriesPoint {

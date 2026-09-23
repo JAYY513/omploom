@@ -398,8 +398,18 @@ handled or safely ignored.
   incremental syncs are sub-second.
 - **The hero row, heatmap and streaks are all-time; the trend and model cards
   follow the 7d/30d/all toggle** (`overview` vs the range-scoped report fields).
-  The model card sorts by tokens or cost via a toggle, and its bars always draw
-  the active metric — never a cost-ordered list under token-sized bars.
+  The model card's sort toggle covers tokens, cost and the four per-task
+  metrics (avg/p50 tokens, cost, count per task); its bars always draw the
+  active metric and the active metric is highlighted in each row — never a
+  cost-ordered list under token-sized bars.
+- **Per-task model averages.** A "task" is one user prompt (turn) in one
+  transcript — `(file_path, turn_index)` in `usage_records`; branch siblings of
+  the same prompt share the turn, auxiliary `model_usage` calls join the open
+  turn. The model card's per-row line shows mean + lower-median **net-new**
+  tokens per task (total minus cache reads: cache reads re-bill the running
+  history and would measure conversation length, not task size), avg cost, and
+  the task count. Every value on that line is its own sort key.
+  `USAGE_SCHEMA_VERSION` 3 re-parses old rows for `turn_index`.
 
 ### Notification micro-interactions (`components/effects/SwipeToast.tsx`, `FuseButton.tsx`, `BellToggle.tsx`, `CallChip.tsx`)
 - **SwipeToast owns a notice's lifetime.** `NoticeShelf` (`ChatWindow.tsx`) renders
