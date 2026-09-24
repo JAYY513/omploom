@@ -9,24 +9,18 @@ After the initial bootstrap release, publishing is performed by GitHub Actions
 with npm trusted publishing. No npm access token is stored in this repository
 or in GitHub secrets.
 
-## Bootstrap the first release
+## Verify the existing npm package
 
-`omploom` is not registered on npm yet. npm exposes trusted-publisher settings
-only for an existing package, so version `0.2.0` must be published once from a
-reviewed local checkout using the authenticated npm account:
+`omploom` is already published on npm. Confirm the package owner and current
+version before changing the trusted-publisher configuration:
 
 ```bash
-npm ci
-npm test
-npm run build
-npm pack --dry-run
-npm publish --access public
+npm view omploom maintainers --registry https://registry.npmjs.org/
+npm view omploom version --registry https://registry.npmjs.org/
 ```
 
-Do not create a tag or GitHub Release for this bootstrap version: npm will
-reject a duplicate version.
-After this succeeds, configure trusted publishing before publishing any later
-version.
+The npm package owner must configure the trusted publisher in npm package
+settings. The repository owner, workflow, and environment are the values below.
 
 ## One-time trusted-publisher setup
 
@@ -38,13 +32,14 @@ version.
    - Environment: `npm`
 2. In GitHub, create the `npm` environment for this repository. Add required
    reviewers if releases need approval.
-3. Confirm Actions are enabled for the repository.
+3. Confirm Actions is enabled for the repository.
 
 The workflow at `.github/workflows/publish.yml` requests `contents: write` to
 create the GitHub Release and `id-token: write` for trusted publishing. It
 installs npm 11.5.1 or newer, as required for trusted publishing. The OIDC
 permission lets npm verify the GitHub Actions identity and generate provenance
 for the published package.
+
 
 ## Release later versions
 
@@ -68,6 +63,13 @@ Release with generated notes. It publishes `omploom` through the configured
 trusted publisher and makes that release public only after npm accepts the
 package. A rerun can safely finish a release if npm has already accepted its
 version.
+
+If a tag push does not start the workflow, manually retry the existing tag from
+the current default branch:
+
+```bash
+gh workflow run publish.yml --repo JAYY513/omploom --ref main -f tag=v<version>
+```
 
 ## Verify
 
